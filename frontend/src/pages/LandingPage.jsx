@@ -34,9 +34,10 @@ export default function LandingPage() {
       <Navbar scrolled={scrolled} />
       <CarouselHero onExplore={handlePlan} />
       <AppFeatures />
-      <Features />
+      
       <DestinationGrid onSelect={handleDestinationSelect} />
       <HowItWorks />
+      <Features />
       <FooterCTA onPlan={handlePlan} />
     </div>
   );
