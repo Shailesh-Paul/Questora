@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import useTripStore from "../store/tripStore";
 import { DESTINATIONS } from "../lib/api";
-import { MapPin, Coffee, Bike, Tent, ArrowRight, Sun, Calendar, ShieldCheck } from "lucide-react";
+import { MapPin, Coffee, Bike, Tent, ArrowRight, Sun, Calendar, ShieldCheck, Phone, Mail, User, Facebook, Twitter, Instagram } from "lucide-react";
 
 // ─── Navbar ──────────────────────────────────────────────────────────────────
 function Navbar({ scrolled }) {
@@ -262,16 +262,81 @@ function FooterCTA({ onPlan }) {
         </button>
       </div>
       
-      <div className="relative z-10 mt-24 pt-8 border-t border-slate-800 max-w-7xl mx-auto px-6 flex flex-col md:flex-row justify-between items-center gap-4 text-slate-400 text-sm">
-        <div className="font-display font-bold text-xl text-white">
-          Weekend<span className="text-orange-500">Wander</span>
+      <footer className="relative z-10 mt-24 pt-16 border-t border-slate-800 bg-slate-900">
+        <div className="max-w-7xl mx-auto px-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-12 text-slate-400">
+          {/* Brand & About */}
+          <div>
+            <div className="font-display font-bold text-2xl text-white mb-6">
+              Weekend<span className="text-orange-500">Wander</span>
+            </div>
+            <p className="text-sm leading-relaxed mb-6">
+              Your ultimate platform for authentic weekend getaways. Skip the mainstream and dive into local cultures, homestays, and hidden gems.
+            </p>
+            <div className="flex gap-4">
+              <a href="#" className="p-2 bg-slate-800 rounded-full hover:bg-orange-500 hover:text-white transition-all">
+                <Facebook size={18} />
+              </a>
+              <a href="#" className="p-2 bg-slate-800 rounded-full hover:bg-orange-500 hover:text-white transition-all">
+                <Twitter size={18} />
+              </a>
+              <a href="#" className="p-2 bg-slate-800 rounded-full hover:bg-orange-500 hover:text-white transition-all">
+                <Instagram size={18} />
+              </a>
+            </div>
+          </div>
+
+          {/* Quick Links */}
+          <div>
+            <h4 className="text-white font-bold text-lg mb-6">Quick Links</h4>
+            <ul className="space-y-3 text-sm">
+              <li><a href="#" className="hover:text-orange-400 transition-colors">Home</a></li>
+              <li><a href="#" className="hover:text-orange-400 transition-colors">Destinations</a></li>
+              <li><a href="#" className="hover:text-orange-400 transition-colors">List Your Property</a></li>
+              <li><a href="#" className="hover:text-orange-400 transition-colors">About Us</a></li>
+              <li><a href="#" className="hover:text-orange-400 transition-colors">Blog</a></li>
+            </ul>
+          </div>
+
+          {/* Support */}
+          <div>
+            <h4 className="text-white font-bold text-lg mb-6">Support</h4>
+            <ul className="space-y-3 text-sm">
+              <li><a href="#" className="hover:text-orange-400 transition-colors">Help Center</a></li>
+              <li><a href="#" className="hover:text-orange-400 transition-colors">Cancellation Policy</a></li>
+              <li><a href="#" className="hover:text-orange-400 transition-colors">Privacy Policy</a></li>
+              <li><a href="#" className="hover:text-orange-400 transition-colors">Terms of Service</a></li>
+              <li><a href="#" className="hover:text-orange-400 transition-colors">Trust & Safety</a></li>
+            </ul>
+          </div>
+
+          {/* Contact Info */}
+          <div>
+            <h4 className="text-white font-bold text-lg mb-6">Contact Us</h4>
+            <ul className="space-y-4 text-sm">
+              <li className="flex items-start gap-3">
+                <User size={18} className="text-orange-500 shrink-0 mt-0.5" />
+                <div>
+                  <p className="text-white font-medium">John Doe</p>
+                  <p className="text-xs">Support Manager</p>
+                </div>
+              </li>
+              <li className="flex items-center gap-3">
+                <Mail size={18} className="text-orange-500 shrink-0" />
+                <a href="mailto:support@example.com" className="hover:text-white transition-colors">support@example.com</a>
+              </li>
+              <li className="flex items-center gap-3">
+                <Phone size={18} className="text-orange-500 shrink-0" />
+                <a href="tel:+12345678900" className="hover:text-white transition-colors">+1 (234) 567-8900</a>
+              </li>
+            </ul>
+          </div>
         </div>
-        <div>© 2026 WeekendWander. The Weekend-First Platform.</div>
-        <div className="flex gap-6">
-          <a href="#" className="hover:text-white transition-colors">List Your Property</a>
-          <a href="#" className="hover:text-white transition-colors">Terms</a>
+
+        {/* Bottom Bar */}
+        <div className="mt-16 py-6 border-t border-slate-800 text-center text-slate-500 text-sm">
+          <p>© 2026 WeekendWander. The Weekend-First Platform. All rights reserved.</p>
         </div>
-      </div>
+      </footer>
     </section>
   );
 }
@@ -301,9 +366,9 @@ export default function LandingPage() {
     <div className="bg-slate-50 min-h-screen font-body text-slate-900">
       <Navbar scrolled={scrolled} />
       <Hero onExplore={handlePlan} />
-      <Features />
       <DestinationGrid onSelect={handleDestinationSelect} />
       <HowItWorks />
+      <Features />
       <FooterCTA onPlan={handlePlan} />
     </div>
   );

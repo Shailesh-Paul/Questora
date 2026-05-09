@@ -135,12 +135,12 @@ export const MOCK_HOTELS = [
 ];
 
 export const MOCK_ACTIVITIES = [
-  { id: "a1", name: "White Water Rafting — Grade 4", duration: "3 hrs", price: 1200, category: "Adventure", rating: 4.8, slots: 20 },
-  { id: "a2", name: "Bungee Jumping at Mohan Chatti", duration: "2 hrs", price: 3500, category: "Extreme", rating: 4.9, slots: 8 },
-  { id: "a3", name: "Sunset Kayaking on Ganges", duration: "1.5 hrs", price: 900, category: "Water", rating: 4.7, slots: 15 },
-  { id: "a4", name: "Beatles Ashram Yoga Retreat", duration: "Half day", price: 1500, category: "Wellness", rating: 4.6, slots: 30 },
-  { id: "a5", name: "Camping & Bonfire at Shivpuri", duration: "Overnight", price: 2800, category: "Camping", rating: 4.8, slots: 25 },
-  { id: "a6", name: "Ganga Aarti & Local Walk", duration: "2 hrs", price: 500, category: "Culture", rating: 4.9, slots: 50 },
+  { id: "a1", name: "White Water Rafting — Grade 4", duration: "3 hrs", price: 1200, category: "Adventure", rating: 4.8, slots: 20, shortDesc: "Thrilling rapids experience", thumb1: "https://images.unsplash.com/photo-1530866495561-507c9faab2ed?w=300", thumb2: "https://images.unsplash.com/photo-1544627255-75e11a2f1ab6?w=300" },
+  { id: "a2", name: "Bungee Jumping at Mohan Chatti", duration: "2 hrs", price: 3500, category: "Extreme", rating: 4.9, slots: 8, shortDesc: "India's highest bungee", thumb1: "https://images.unsplash.com/photo-1522030299830-16b8d3d049f5?w=300", thumb2: "https://images.unsplash.com/photo-1523490977239-65d1d6a666e4?w=300" },
+  { id: "a3", name: "Sunset Kayaking on Ganges", duration: "1.5 hrs", price: 900, category: "Water", rating: 4.7, slots: 15, shortDesc: "Peaceful evening paddle", thumb1: "https://images.unsplash.com/photo-1544551763-46a013bb70d5?w=300", thumb2: "https://images.unsplash.com/photo-1527845347291-a1e127de69dc?w=300" },
+  { id: "a4", name: "Beatles Ashram Yoga Retreat", duration: "Half day", price: 1500, category: "Wellness", rating: 4.6, slots: 30, shortDesc: "Spiritual morning session", thumb1: "https://images.unsplash.com/photo-1545389336-cf090694435e?w=300", thumb2: "https://images.unsplash.com/photo-1506126613408-eca07ce68773?w=300" },
+  { id: "a5", name: "Camping & Bonfire at Shivpuri", duration: "Overnight", price: 2800, category: "Outdoor", rating: 4.8, slots: 25, shortDesc: "Riverside tent stay", thumb1: "https://images.unsplash.com/photo-1523987355523-c7b5b0dd90a7?w=300", thumb2: "https://images.unsplash.com/photo-1504280327387-5c328e18bc89?w=300" },
+  { id: "a6", name: "Ganga Aarti & Local Walk", duration: "2 hrs", price: 500, category: "Culture", rating: 4.9, slots: 50, shortDesc: "Iconic evening ritual", thumb1: "https://images.unsplash.com/photo-1582298538104-e59e13b8650d?w=300", thumb2: "https://images.unsplash.com/photo-1561361513-2d000a50f0dc?w=300" },
 ];
 
 export const DESTINATIONS = [
