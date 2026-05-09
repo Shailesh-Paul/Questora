@@ -110,7 +110,10 @@ export default function PlanPage() {
     dateRange: storeDateRange,
     setDateRange,
     selectedActivities,
-    toggleActivity
+    toggleActivity,
+    cart,
+    addToCart
+
   } = useTripStore();
 
   const parseDateSafe = (d) => {
@@ -146,6 +149,7 @@ export default function PlanPage() {
   }, []);
 
   useEffect(() => {
+
     if (!destination && DESTINATIONS.length > 0) {
       setDestination(DESTINATIONS[0]);
     } else if (destination) {
@@ -176,7 +180,16 @@ export default function PlanPage() {
       toast.error("Please select travel dates.");
       return;
     }
+    // Sync selectedActivities to cart
+    selectedActivities.forEach(id => {
+      const act = MOCK_ACTIVITIES.find(a => a.id === id);
+      if (act && !cart.some(c => c.id === id)) {
+        addToCart({ ...act, type: "activity", price: act.price * members });
+      }
+    });
+
     setShowBillModal(true);
+
   };
 
   if (!destination) return null;
@@ -858,6 +871,7 @@ export default function PlanPage() {
                 onClick={() => {
                   setShowBillModal(false);
                   toast.success("Booking Request Confirmed!");
+                  navigate(`/itinerary/${destination.id}`);
                 }}
                 className="flex-1 py-4 rounded-xl font-bold uppercase tracking-widest text-[11px] bg-orange-500 text-white hover:bg-orange-600 transition-colors shadow-md"
               >

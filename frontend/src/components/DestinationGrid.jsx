@@ -1,8 +1,35 @@
-import React from "react";
-import { ArrowRight, Sparkles } from "lucide-react";
+import React, { useState } from "react";
+import { ArrowRight, Sparkles, Search } from "lucide-react";
 import { DESTINATIONS } from "../lib/api";
 
 export default function DestinationGrid({ onSelect }) {
+  const [searchQuery, setSearchQuery] = useState("");
+  const [showDropdown, setShowDropdown] = useState(false);
+
+  const filteredDestinations = DESTINATIONS.filter(d => 
+    d.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
+    d.state.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
+  const handleCustomSearch = () => {
+    if (!searchQuery.trim()) return;
+    const exactMatch = DESTINATIONS.find(d => d.name.toLowerCase() === searchQuery.toLowerCase());
+    if (exactMatch) {
+      onSelect(exactMatch);
+      return;
+    }
+    const customDest = {
+      id: "custom-" + Date.now(),
+      name: searchQuery,
+      state: "Custom Destination",
+      image: "https://images.unsplash.com/photo-1469854523086-cc02fe5d8800?w=800&q=80",
+      tagline: "Explore your way",
+      crowdLevel: "low",
+      tag: "Custom",
+      trendingScore: 90
+    };
+    onSelect(customDest);
+  };
 
   const getCrowdStyles = (level) => {
     switch (level) {
@@ -10,32 +37,25 @@ export default function DestinationGrid({ onSelect }) {
         return {
           text: "Peaceful",
           dot: "bg-emerald-400",
-          badge:
-            "bg-emerald-500/15 text-emerald-200 border-emerald-400/20",
+          badge: "bg-emerald-500/15 text-emerald-200 border-emerald-400/20",
         };
-
       case "medium":
         return {
           text: "Moderate",
           dot: "bg-amber-400",
-          badge:
-            "bg-amber-500/15 text-amber-200 border-amber-400/20",
+          badge: "bg-amber-500/15 text-amber-200 border-amber-400/20",
         };
-
       case "high":
         return {
           text: "Popular",
           dot: "bg-rose-400",
-          badge:
-            "bg-rose-500/15 text-rose-200 border-rose-400/20",
+          badge: "bg-rose-500/15 text-rose-200 border-rose-400/20",
         };
-
       default:
         return {
           text: "Unknown",
           dot: "bg-slate-400",
-          badge:
-            "bg-slate-500/15 text-slate-200 border-slate-400/20",
+          badge: "bg-slate-500/15 text-slate-200 border-slate-400/20",
         };
     }
   };
@@ -43,81 +63,101 @@ export default function DestinationGrid({ onSelect }) {
   return (
     <section
       id="destinations"
-      className="
-        relative
-        overflow-hidden
-        py-24
-        text-white
-        bg-[#050816]
-      "
+      className="relative overflow-hidden py-24 text-white bg-[#050816]"
     >
-      {/* CLEAN 4K NATURE BACKGROUND */}
       <div className="absolute inset-0 z-0">
-
-        {/* BACKGROUND IMAGE */}
         <img
           src="https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=2400&q=100"
           alt="Nature background"
-          className="
-            w-full
-            h-full
-            object-cover
-          "
+          className="w-full h-full object-cover"
         />
-
-        {/* LIGHT OVERLAY */}
         <div className="absolute inset-0 bg-black/55" />
-
-        {/* CINEMATIC GRADIENT */}
-        <div
-          className="
-            absolute inset-0
-            bg-gradient-to-b
-            from-[#050816]/40
-            via-[#050816]/55
-            to-[#050816]
-          "
-        />
+        <div className="absolute inset-0 bg-gradient-to-b from-[#050816]/40 via-[#050816]/55 to-[#050816]" />
       </div>
 
-      {/* SOFT GLOW */}
       <div className="absolute top-0 left-0 w-[30rem] h-[30rem] bg-cyan-500/10 blur-[160px]" />
-
       <div className="absolute bottom-0 right-0 w-[30rem] h-[30rem] bg-orange-500/10 blur-[160px]" />
 
-      {/* CONTENT */}
       <div className="relative z-10 max-w-7xl mx-auto px-6">
-
-        {/* HEADER */}
-        <div className="text-center mb-16">
-
-          {/* LABEL */}
-          <div
-            className="
-              inline-flex
-              items-center gap-2
-              px-4 py-2
-              rounded-full
-              border border-white/10
-              bg-white/[0.05]
-              backdrop-blur-xl
-              mb-6
-            "
-          >
-            <Sparkles size={13} className="text-orange-300" />
-
-            <span
-              className="
-                text-[10px]
-                uppercase
-                tracking-[0.3em]
-                text-white/50
-                font-semibold
-              "
-            >
-              Trending Destinations
-            </span>
+        <div className="flex flex-col lg:flex-row lg:items-end justify-between mb-16 gap-8">
+          <div className="flex-1">
+            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-white/10 bg-white/[0.05] backdrop-blur-xl mb-6">
+              <Sparkles size={13} className="text-orange-300" />
+              <span className="text-[10px] uppercase tracking-[0.3em] text-white/50 font-semibold">
+                Trending Destinations
+              </span>
+            </div>
+            <h2 className="text-4xl md:text-6xl font-black leading-[1] tracking-tight text-[#f3eee8] mb-6">
+              Discover Beautiful<br />Weekend Escapes.
+            </h2>
+            <p className="max-w-2xl text-[15px] md:text-lg leading-relaxed text-[#d2cbc2]">
+              Explore peaceful mountains, hidden forests, tropical beaches, and breathtaking destinations crafted for unforgettable travel experiences.
+            </p>
           </div>
+
+          {/* Search Bar from YashNN branch, styled for cinematic look */}
+          <div className="w-full lg:w-[400px] relative">
+            <div className="flex items-center bg-white/10 backdrop-blur-2xl rounded-2xl border border-white/10 p-2 hover:border-white/20 transition-all shadow-2xl">
+              <div className="pl-4 pr-2 text-orange-400">
+                <Search size={20} />
+              </div>
+              <input
+                type="text"
+                placeholder="Where to next?"
+                className="flex-1 bg-transparent outline-none py-3 text-white font-medium placeholder-white/30"
+                value={searchQuery}
+                onChange={(e) => {
+                  setSearchQuery(e.target.value);
+                  setShowDropdown(true);
+                }}
+                onFocus={() => setShowDropdown(true)}
+                onBlur={() => setTimeout(() => setShowDropdown(false), 200)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") handleCustomSearch();
+                }}
+              />
+              <button
+                onClick={handleCustomSearch}
+                className="bg-orange-500 hover:bg-orange-600 text-white px-5 py-2.5 rounded-xl font-bold text-xs uppercase tracking-widest transition-all"
+              >
+                Go
+              </button>
+            </div>
+
+            {showDropdown && searchQuery.trim() && (
+              <div className="absolute top-full left-0 right-0 mt-3 bg-[#0a0f1d] border border-white/10 rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.5)] overflow-hidden z-50 max-h-80 overflow-y-auto">
+                {filteredDestinations.length > 0 ? (
+                  filteredDestinations.map(dest => (
+                    <div 
+                      key={dest.id}
+                      onClick={() => onSelect(dest)}
+                      className="px-5 py-4 hover:bg-white/5 cursor-pointer flex items-center justify-between border-b border-white/5 last:border-0 group transition-colors"
+                    >
+                      <div className="flex items-center gap-4">
+                        <div className="w-10 h-10 rounded-lg overflow-hidden shrink-0">
+                          <img src={dest.image} alt={dest.name} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
+                        </div>
+                        <div>
+                          <p className="font-bold text-white group-hover:text-orange-400 transition-colors">{dest.name}</p>
+                          <p className="text-[10px] text-white/40 font-medium uppercase tracking-wider">{dest.state}</p>
+                        </div>
+                      </div>
+                      <ArrowRight size={14} className="text-white/20 group-hover:text-orange-400 group-hover:translate-x-1 transition-all" />
+                    </div>
+                  ))
+                ) : (
+                  <div 
+                    onClick={handleCustomSearch}
+                    className="px-5 py-6 text-center cursor-pointer hover:bg-white/5 transition-colors"
+                  >
+                    <p className="text-white/40 text-sm mb-1">Not in trending destinations.</p>
+                    <p className="text-orange-400 font-bold text-sm">Plan custom trip to "{searchQuery}"</p>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        </div>
 
           {/* TITLE */}
           <h2
