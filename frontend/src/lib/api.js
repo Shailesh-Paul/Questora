@@ -127,11 +127,48 @@ Keep it luxury, concise, executive-level.`;
   }
 };
 
+// ─── OpenAI: AI Insights ───────────────────────────────────────────────────────
+const OPENAI_KEY = process.env.REACT_APP_OPENAI_API_KEY || "";
+
+export const generateAIInsights = async (itemName, type, userProfile) => {
+  try {
+    const prompt = `As a luxury travel advisor, write a 2-sentence highly personalized pitch on why the ${type} "${itemName}" is a perfect fit for a group of ${userProfile.members} travelers visiting ${userProfile.destination} with a budget of ₹${userProfile.budget}. Make it sound exclusive and enticing.`;
+    
+    const res = await axios.post(
+      "https://api.openai.com/v1/chat/completions",
+      {
+        model: "gpt-3.5-turbo",
+        messages: [{ role: "user", content: prompt }],
+        max_tokens: 60,
+      },
+      {
+        headers: {
+          "Authorization": `Bearer ${OPENAI_KEY}`,
+          "Content-Type": "application/json"
+        }
+      }
+    );
+    return res.data.choices[0].message.content.trim();
+  } catch (error) {
+    console.error("OpenAI Error:", error);
+    return `An excellent choice for your stay in ${userProfile.destination}, offering great amenities and comfort tailored to your group.`;
+  }
+};
+
 // ─── Mock fallbacks (so UI never breaks without API keys) ────────────────────
 export const MOCK_HOTELS = [
-  { id: "h1", name: "Aloha on the Ganges", stars: 5, price: 8500, currency: "INR", amenities: ["Pool", "Spa", "Yoga", "River View"], image: "https://images.unsplash.com/photo-1520250497591-112f2f40a3f4?w=600" },
-  { id: "h2", name: "The Glasshouse on the Ganges", stars: 5, price: 12000, currency: "INR", amenities: ["Heritage", "Private Beach", "Butler", "Gourmet"], image: "https://images.unsplash.com/photo-1571896349842-33c89424de2d?w=600" },
-  { id: "h3", name: "Ananda in the Himalayas", stars: 5, price: 22000, currency: "INR", amenities: ["Ayurveda", "Himalayan Views", "Infinity Pool", "Organic Dining"], image: "https://images.unsplash.com/photo-1564501049412-61c2a3083791?w=600" },
+  // Hotels and Villas
+  { id: "h1", name: "Aloha on the Ganges", type: "hotel", stars: 5, price: 8500, currency: "INR", amenities: ["Pool", "Spa", "Yoga", "River View"], image: "https://images.unsplash.com/photo-1520250497591-112f2f40a3f4?w=600" },
+  { id: "h2", name: "The Glasshouse on the Ganges", type: "hotel", stars: 5, price: 12000, currency: "INR", amenities: ["Heritage", "Private Beach", "Butler", "Gourmet"], image: "https://images.unsplash.com/photo-1571896349842-33c89424de2d?w=600" },
+  { id: "v1", name: "Himalayan Sunrise Villa", type: "hotel", stars: 4, price: 15000, currency: "INR", amenities: ["Private Chef", "4 Bedrooms", "Mountain View", "Fireplace"], image: "https://images.unsplash.com/photo-1518780664697-55e3ad937233?w=600" },
+  
+  // Hostels and Dormitory
+  { id: "ho1", name: "Zostel Rishikesh", type: "hostel", stars: 4, price: 800, currency: "INR", amenities: ["Bunk Beds", "Cafe", "WiFi", "Social Events"], image: "https://images.unsplash.com/photo-1555854877-bab0e564b8d5?w=600" },
+  { id: "ho2", name: "The Hosteller", type: "hostel", stars: 4, price: 900, currency: "INR", amenities: ["AC Dorms", "Library", "Terrace", "Lockers"], image: "https://images.unsplash.com/photo-1596394516093-501ba68a0ba6?w=600" },
+
+  // Local Staying Homes
+  { id: "lh1", name: "Sharma Family Homestay", type: "home", stars: 5, price: 2500, currency: "INR", amenities: ["Home Cooked Meals", "Local Guide", "Garden", "Authentic"], image: "https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=600" },
+  { id: "lh2", name: "Riverside Cottage", type: "home", stars: 4, price: 3200, currency: "INR", amenities: ["Private Access", "Pet Friendly", "Kitchen", "Quiet"], image: "https://images.unsplash.com/photo-1499793983690-e29da59ef1c2?w=600" }
 ];
 
 export const MOCK_ACTIVITIES = [
@@ -141,6 +178,8 @@ export const MOCK_ACTIVITIES = [
   { id: "a4", name: "Beatles Ashram Yoga Retreat", duration: "Half day", price: 1500, category: "Wellness", rating: 4.6, slots: 30, shortDesc: "Spiritual morning session", thumb1: "https://images.unsplash.com/photo-1545389336-cf090694435e?w=300", thumb2: "https://images.unsplash.com/photo-1506126613408-eca07ce68773?w=300" },
   { id: "a5", name: "Camping & Bonfire at Shivpuri", duration: "Overnight", price: 2800, category: "Outdoor", rating: 4.8, slots: 25, shortDesc: "Riverside tent stay", thumb1: "https://images.unsplash.com/photo-1523987355523-c7b5b0dd90a7?w=300", thumb2: "https://images.unsplash.com/photo-1504280327387-5c328e18bc89?w=300" },
   { id: "a6", name: "Ganga Aarti & Local Walk", duration: "2 hrs", price: 500, category: "Culture", rating: 4.9, slots: 50, shortDesc: "Iconic evening ritual", thumb1: "https://images.unsplash.com/photo-1582298538104-e59e13b8650d?w=300", thumb2: "https://images.unsplash.com/photo-1561361513-2d000a50f0dc?w=300" },
+  { id: "a7", name: "Himalayan Mountain Biking", duration: "4 hrs", price: 1800, category: "Extreme", rating: 4.7, slots: 10, shortDesc: "Mountain trails", thumb1: "https://images.unsplash.com/photo-1544627255-75e11a2f1ab6?w=300", thumb2: "https://images.unsplash.com/photo-1527845347291-a1e127de69dc?w=300" },
+  { id: "a8", name: "Pottery Class with Locals", duration: "2 hrs", price: 600, category: "Culture", rating: 4.5, slots: 12, shortDesc: "Learn local arts", thumb1: "https://images.unsplash.com/photo-1506126613408-eca07ce68773?w=300", thumb2: "https://images.unsplash.com/photo-1523490977239-65d1d6a666e4?w=300" }
 ];
 
 export const DESTINATIONS = [

@@ -110,7 +110,9 @@ export default function PlanPage() {
     dateRange: storeDateRange,
     setDateRange,
     selectedActivities,
-    toggleActivity
+    toggleActivity,
+    cart,
+    addToCart
   } = useTripStore();
 
   const parseDateSafe = (d) => {
@@ -857,7 +859,16 @@ export default function PlanPage() {
               <button 
                 onClick={() => {
                   setShowBillModal(false);
-                  toast.success("Booking Request Confirmed!");
+                  
+                  // Sync selectedActivities to cart
+                  selectedActivities.forEach(id => {
+                    const act = MOCK_ACTIVITIES.find(a => a.id === id);
+                    if (act && !cart.some(c => c.id === id)) {
+                      addToCart({ ...act, type: "activity", price: act.price * members });
+                    }
+                  });
+
+                  navigate(`/itinerary/${destination.id}`);
                 }}
                 className="flex-1 py-4 rounded-xl font-bold uppercase tracking-widest text-[11px] bg-orange-500 text-white hover:bg-orange-600 transition-colors shadow-md"
               >
