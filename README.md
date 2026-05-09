@@ -1,4 +1,4 @@
-# LuxeTrek — Corporate Group Travel Ecosystem
+# Questora — Corporate Group Travel Ecosystem
 
 ## 🚀 Quick Start (Run This First)
 
