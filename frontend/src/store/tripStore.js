@@ -32,7 +32,7 @@ const useTripStore = create(
       tripName: "",
       setTripName: (name) => set({ tripName: name }),
 
-      // Booking cart
+      // Booking cart (Activities)
       cart: [],
       addToCart: (item) =>
         set((state) => ({
@@ -43,16 +43,29 @@ const useTripStore = create(
       removeFromCart: (id) =>
         set((state) => ({ cart: state.cart.filter((i) => i.id !== id) })),
 
+      // Selected Hotel
+      selectedHotel: null,
+      selectHotel: (hotel) => set({ selectedHotel: hotel }),
+      clearHotel: () => set({ selectedHotel: null }),
+
       // Computed
       getTotalCost: () => {
-        const { cart } = get();
-        return cart.reduce((sum, item) => sum + (item.price || 0), 0);
+        const { cart, selectedHotel } = get();
+        const activitiesCost = cart.reduce((sum, item) => sum + (item.price || 0), 0);
+        const hotelCost = selectedHotel ? (selectedHotel.price || 0) : 0;
+        return activitiesCost + hotelCost;
       },
 
       getCostPerPerson: () => {
-        const { cart, members } = get();
-        const total = cart.reduce((sum, item) => sum + (item.price || 0), 0);
+        const { members } = get();
+        const total = get().getTotalCost();
         return Math.round(total / members);
+      },
+
+      getRemainingBudget: () => {
+        const { budget, budgetType, members } = get();
+        const totalBudget = budgetType === "per_person" ? budget * members : budget;
+        return totalBudget - get().getTotalCost();
       },
 
       // Reset
@@ -65,6 +78,7 @@ const useTripStore = create(
           selectedActivities: [],
           tripName: "",
           cart: [],
+          selectedHotel: null,
         }),
     }),
     { name: "luxe-trip-store" }

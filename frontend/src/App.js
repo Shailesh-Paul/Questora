@@ -5,6 +5,7 @@ import { Toaster } from "react-hot-toast";
 import LandingPage from "./pages/LandingPage";
 import PlanPage from "./pages/PlanPage";
 import ItineraryPage from "./pages/ItineraryPage";
+import ScrollToTop from "./components/ScrollToTop";
 import "./index.css";
 
 const queryClient = new QueryClient({
@@ -42,6 +43,7 @@ export default function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <BrowserRouter>
+        <ScrollToTop />
         <div className="grain">
           <CustomCursor />
           <Toaster
