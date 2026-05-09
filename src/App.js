@@ -1,0 +1,67 @@
+import React, { useEffect, useRef } from "react";
+import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { Toaster } from "react-hot-toast";
+import LandingPage from "./pages/LandingPage";
+import PlanPage from "./pages/PlanPage";
+import ItineraryPage from "./pages/ItineraryPage";
+import "./index.css";
+
+const queryClient = new QueryClient({
+  defaultOptions: { queries: { staleTime: 5 * 60 * 1000, retry: 1 } },
+});
+
+function CustomCursor() {
+  const cursorRef = useRef(null);
+  const followerRef = useRef(null);
+
+  useEffect(() => {
+    const move = (e) => {
+      if (cursorRef.current) {
+        cursorRef.current.style.transform = `translate(${e.clientX - 4}px, ${e.clientY - 4}px)`;
+      }
+      if (followerRef.current) {
+        setTimeout(() => {
+          followerRef.current.style.transform = `translate(${e.clientX - 16}px, ${e.clientY - 16}px)`;
+        }, 80);
+      }
+    };
+    window.addEventListener("mousemove", move);
+    return () => window.removeEventListener("mousemove", move);
+  }, []);
+
+  return (
+    <>
+      <div ref={cursorRef} className="cursor" />
+      <div ref={followerRef} className="cursor-follower" />
+    </>
+  );
+}
+
+export default function App() {
+  return (
+    <QueryClientProvider client={queryClient}>
+      <BrowserRouter>
+        <div className="grain">
+          <CustomCursor />
+          <Toaster
+            position="top-right"
+            toastOptions={{
+              style: {
+                background: "#1A1A1E",
+                color: "#F5F0E8",
+                border: "1px solid rgba(201,168,76,0.3)",
+                fontFamily: "'DM Sans', sans-serif",
+              },
+            }}
+          />
+          <Routes>
+            <Route path="/" element={<LandingPage />} />
+            <Route path="/plan" element={<PlanPage />} />
+            <Route path="/itinerary/:destination" element={<ItineraryPage />} />
+          </Routes>
+        </div>
+      </BrowserRouter>
+    </QueryClientProvider>
+  );
+}

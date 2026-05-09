@@ -1,0 +1,153 @@
+import axios from "axios";
+
+const UNSPLASH_KEY = process.env.REACT_APP_UNSPLASH_ACCESS_KEY;
+const WEATHER_KEY = process.env.REACT_APP_OPENWEATHER_KEY;
+const GEMINI_KEY = process.env.REACT_APP_GEMINI_API_KEY;
+
+// ─── Unsplash: Destination Images ────────────────────────────────────────────
+export const fetchDestinationImage = async (query) => {
+  try {
+    const res = await axios.get("https://api.unsplash.com/search/photos", {
+      params: { query, per_page: 1, orientation: "landscape" },
+      headers: { Authorization: `Client-ID ${UNSPLASH_KEY}` },
+    });
+    return res.data.results[0]?.urls?.regular || null;
+  } catch {
+    return null;
+  }
+};
+
+// ─── OpenWeatherMap: Weekend Forecast ────────────────────────────────────────
+export const fetchWeather = async (city) => {
+  try {
+    const res = await axios.get(
+      "https://api.openweathermap.org/data/2.5/forecast",
+      {
+        params: { q: city + ",IN", appid: WEATHER_KEY, units: "metric", cnt: 8 },
+      }
+    );
+    const list = res.data.list;
+    return {
+      temp: Math.round(list[0]?.main?.temp),
+      description: list[0]?.weather[0]?.description,
+      icon: list[0]?.weather[0]?.icon,
+      humidity: list[0]?.main?.humidity,
+      weekend: list.slice(0, 6).map((item) => ({
+        time: item.dt_txt,
+        temp: Math.round(item.main.temp),
+        desc: item.weather[0].description,
+      })),
+    };
+  } catch {
+    return null;
+  }
+};
+
+// ─── Amadeus: Hotel Search ────────────────────────────────────────────────────
+let amadeusToken = null;
+let tokenExpiry = 0;
+
+const getAmadeusToken = async () => {
+  if (amadeusToken && Date.now() < tokenExpiry) return amadeusToken;
+  const res = await axios.post(
+    "https://test.api.amadeus.com/v1/security/oauth2/token",
+    new URLSearchParams({
+      grant_type: "client_credentials",
+      client_id: process.env.REACT_APP_AMADEUS_CLIENT_ID,
+      client_secret: process.env.REACT_APP_AMADEUS_CLIENT_SECRET,
+    })
+  );
+  amadeusToken = res.data.access_token;
+  tokenExpiry = Date.now() + res.data.expires_in * 1000 - 60000;
+  return amadeusToken;
+};
+
+export const fetchHotels = async ({ cityCode, checkIn, checkOut, adults }) => {
+  try {
+    const token = await getAmadeusToken();
+    const listRes = await axios.get(
+      "https://test.api.amadeus.com/v1/reference-data/locations/hotels/by-city",
+      { params: { cityCode }, headers: { Authorization: `Bearer ${token}` } }
+    );
+    const hotelIds = listRes.data.data
+      .slice(0, 5)
+      .map((h) => h.hotelId)
+      .join(",");
+    const offersRes = await axios.get(
+      "https://test.api.amadeus.com/v3/shopping/hotel-offers",
+      {
+        params: { hotelIds, checkInDate: checkIn, checkOutDate: checkOut, adults },
+        headers: { Authorization: `Bearer ${token}` },
+      }
+    );
+    return offersRes.data.data || [];
+  } catch {
+    return MOCK_HOTELS;
+  }
+};
+
+// ─── Viator: Activities ───────────────────────────────────────────────────────
+export const fetchActivities = async (destination) => {
+  try {
+    const res = await axios.post(
+      "https://api.viator.com/partner/products/search",
+      { text: destination, currency: "INR", count: 6 },
+      {
+        headers: {
+          "exp-api-key": process.env.REACT_APP_VIATOR_API_KEY,
+          "Accept-Language": "en-US",
+        },
+      }
+    );
+    return res.data.products || MOCK_ACTIVITIES;
+  } catch {
+    return MOCK_ACTIVITIES;
+  }
+};
+
+// ─── Gemini: AI Itinerary ─────────────────────────────────────────────────────
+export const generateAIItinerary = async ({ destination, members, budget, activities, days }) => {
+  try {
+    const prompt = `Create a premium ${days}-day group travel itinerary for ${destination}, India.
+Group: ${members} corporate professionals.
+Budget: ₹${budget} per person total.
+Must-do: ${activities.join(", ")}.
+Return JSON with: { overview, days: [{date, morning, afternoon, evening, hotel, estimatedCost}] }
+Keep it luxury, concise, executive-level.`;
+
+    const res = await axios.post(
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${GEMINI_KEY}`,
+      { contents: [{ parts: [{ text: prompt }] }] }
+    );
+    const text = res.data.candidates[0].content.parts[0].text;
+    const json = text.match(/\{[\s\S]*\}/)?.[0];
+    return json ? JSON.parse(json) : null;
+  } catch {
+    return null;
+  }
+};
+
+// ─── Mock fallbacks (so UI never breaks without API keys) ────────────────────
+export const MOCK_HOTELS = [
+  { id: "h1", name: "Aloha on the Ganges", stars: 5, price: 8500, currency: "INR", amenities: ["Pool", "Spa", "Yoga", "River View"], image: "https://images.unsplash.com/photo-1520250497591-112f2f40a3f4?w=600" },
+  { id: "h2", name: "The Glasshouse on the Ganges", stars: 5, price: 12000, currency: "INR", amenities: ["Heritage", "Private Beach", "Butler", "Gourmet"], image: "https://images.unsplash.com/photo-1571896349842-33c89424de2d?w=600" },
+  { id: "h3", name: "Ananda in the Himalayas", stars: 5, price: 22000, currency: "INR", amenities: ["Ayurveda", "Himalayan Views", "Infinity Pool", "Organic Dining"], image: "https://images.unsplash.com/photo-1564501049412-61c2a3083791?w=600" },
+];
+
+export const MOCK_ACTIVITIES = [
+  { id: "a1", name: "White Water Rafting — Grade 4", duration: "3 hrs", price: 1200, category: "Adventure", rating: 4.8, slots: 20 },
+  { id: "a2", name: "Bungee Jumping at Mohan Chatti", duration: "2 hrs", price: 3500, category: "Extreme", rating: 4.9, slots: 8 },
+  { id: "a3", name: "Sunset Kayaking on Ganges", duration: "1.5 hrs", price: 900, category: "Water", rating: 4.7, slots: 15 },
+  { id: "a4", name: "Beatles Ashram Yoga Retreat", duration: "Half day", price: 1500, category: "Wellness", rating: 4.6, slots: 30 },
+  { id: "a5", name: "Camping & Bonfire at Shivpuri", duration: "Overnight", price: 2800, category: "Camping", rating: 4.8, slots: 25 },
+  { id: "a6", name: "Ganga Aarti & Local Walk", duration: "2 hrs", price: 500, category: "Culture", rating: 4.9, slots: 50 },
+];
+
+export const DESTINATIONS = [
+  { id: "rishikesh", name: "Rishikesh", tagline: "Adventure & Soul", state: "Uttarakhand", amadeusCode: "DEL", tag: "Trending", color: "#7A9E7E", image: "https://images.unsplash.com/photo-1626621341517-bbf3d9990a23?w=800" },
+  { id: "coorg", name: "Coorg", tagline: "Mist & Coffee", state: "Karnataka", amadeusCode: "MYQ", tag: "Serene", color: "#C9A84C", image: "https://images.unsplash.com/photo-1602216056096-3b40cc0c9944?w=800" },
+  { id: "goa", name: "Goa", tagline: "Sun & Celebration", state: "Goa", amadeusCode: "GOI", tag: "Popular", color: "#C97B5A", image: "https://images.unsplash.com/photo-1614082242765-7c98ca0f3df3?w=800" },
+  { id: "manali", name: "Manali", tagline: "Snow & Serenity", state: "Himachal Pradesh", amadeusCode: "KUU", tag: "Premium", color: "#7AAEC9", image: "https://images.unsplash.com/photo-1626621341517-bbf3d9990a23?w=800" },
+  { id: "udaipur", name: "Udaipur", tagline: "Palaces & Lakes", state: "Rajasthan", amadeusCode: "UDR", tag: "Luxury", color: "#C9A84C", image: "https://images.unsplash.com/photo-1477587458883-47145ed31fd5?w=800" },
+  { id: "andaman", name: "Andaman", tagline: "Turquoise & Tides", state: "A&N Islands", amadeusCode: "IXZ", tag: "Exclusive", color: "#4A9E9E", image: "https://images.unsplash.com/photo-1559128010-7c1ad6e1b6a5?w=800" },
+];
