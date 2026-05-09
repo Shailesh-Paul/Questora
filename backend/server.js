@@ -56,6 +56,36 @@ app.get('/api/destinations', (req, res) => {
   ]);
 });
 
+const Razorpay = require('razorpay');
+
+// Razorpay Instance
+const razorpay = new Razorpay({
+  key_id: 'rzp_test_SnQQo0BjlwDtYq',
+  key_secret: '5XgMc16NhLrylNgxIsoxFFrN'
+});
+
+app.post('/api/create-order', async (req, res) => {
+  try {
+    const { amount } = req.body;
+    
+    if (!amount) {
+      return res.status(400).json({ error: 'Amount is required' });
+    }
+
+    const options = {
+      amount: amount * 100, // amount in the smallest currency unit (paise)
+      currency: "INR",
+      receipt: "receipt_order_" + Date.now(),
+    };
+
+    const order = await razorpay.orders.create(options);
+    res.json(order);
+  } catch (error) {
+    console.error("Razorpay Error:", error);
+    res.status(500).json({ error: 'Failed to create order' });
+  }
+});
+
 // MongoDB Connection
 mongoose.connect(process.env.MONGO_URI || 'mongodb://localhost:27017/weekendwander')
   .then(() => console.log('MongoDB Connected'))

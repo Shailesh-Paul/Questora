@@ -5,6 +5,7 @@ import { Toaster } from "react-hot-toast";
 import LandingPage from "./pages/LandingPage";
 import PlanPage from "./pages/PlanPage";
 import ItineraryPage from "./pages/ItineraryPage";
+import BookingPage from "./pages/BookingPage";
 import ScrollToTop from "./components/ScrollToTop";
 import "./index.css";
 
@@ -61,6 +62,7 @@ export default function App() {
             <Route path="/" element={<LandingPage />} />
             <Route path="/plan" element={<PlanPage />} />
             <Route path="/itinerary/:destination" element={<ItineraryPage />} />
+            <Route path="/booking" element={<BookingPage />} />
           </Routes>
         </div>
       </BrowserRouter>
