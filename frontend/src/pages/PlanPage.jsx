@@ -142,6 +142,10 @@ export default function PlanPage() {
   ];
 
   useEffect(() => {
+    window.scrollTo(0, 0);
+  }, []);
+
+  useEffect(() => {
     if (!destination && DESTINATIONS.length > 0) {
       setDestination(DESTINATIONS[0]);
     } else if (destination) {
@@ -212,7 +216,7 @@ export default function PlanPage() {
             <ArrowLeft size={16} /> BACK
           </button>
           <div className="font-display font-bold text-xl text-white">
-            Weekend<span className="text-orange-500">Wander</span>
+            Quest<span className="text-orange-500">ora</span>
           </div>
           <div className="w-24"></div>
         </div>
