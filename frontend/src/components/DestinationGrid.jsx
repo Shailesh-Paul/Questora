@@ -6,6 +6,8 @@ export default function DestinationGrid({ onSelect }) {
   const [searchQuery, setSearchQuery] = useState("");
   const [showDropdown, setShowDropdown] = useState(false);
 
+  const [activeIndex, setActiveIndex] = useState(-1);
+
   const filteredDestinations = DESTINATIONS.filter(d => 
     d.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
     d.state.toLowerCase().includes(searchQuery.toLowerCase())
@@ -13,6 +15,13 @@ export default function DestinationGrid({ onSelect }) {
 
   const handleCustomSearch = () => {
     if (!searchQuery.trim()) return;
+    
+    // If active index is valid, select that one instead
+    if (activeIndex >= 0 && activeIndex < filteredDestinations.length) {
+      onSelect(filteredDestinations[activeIndex]);
+      return;
+    }
+
     const exactMatch = DESTINATIONS.find(d => d.name.toLowerCase() === searchQuery.toLowerCase());
     if (exactMatch) {
       onSelect(exactMatch);
@@ -29,6 +38,36 @@ export default function DestinationGrid({ onSelect }) {
       trendingScore: 90
     };
     onSelect(customDest);
+  };
+
+  const handleKeyDown = (e) => {
+    if (e.key === "ArrowDown") {
+      e.preventDefault();
+      setActiveIndex(prev => (prev < filteredDestinations.length - 1 ? prev + 1 : prev));
+    } else if (e.key === "ArrowUp") {
+      e.preventDefault();
+      setActiveIndex(prev => (prev > 0 ? prev - 1 : -1));
+    } else if (e.key === "Enter") {
+      handleCustomSearch();
+    } else if (e.key === "Escape") {
+      setShowDropdown(false);
+    }
+  };
+
+  const highlightMatch = (text, query) => {
+    if (!query) return text;
+    const parts = text.split(new RegExp(`(${query})`, "gi"));
+    return (
+      <span>
+        {parts.map((part, i) => 
+          part.toLowerCase() === query.toLowerCase() ? (
+            <span key={i} className="text-orange-400 font-black">{part}</span>
+          ) : (
+            part
+          )
+        )}
+      </span>
+    );
   };
 
   const getCrowdStyles = (level) => {
@@ -103,18 +142,17 @@ export default function DestinationGrid({ onSelect }) {
               </div>
               <input
                 type="text"
-                placeholder="Where to next?"
+                placeholder="Enter your destination"
                 className="flex-1 bg-transparent outline-none py-3 text-white font-medium placeholder-white/30"
                 value={searchQuery}
                 onChange={(e) => {
                   setSearchQuery(e.target.value);
                   setShowDropdown(true);
+                  setActiveIndex(-1);
                 }}
                 onFocus={() => setShowDropdown(true)}
                 onBlur={() => setTimeout(() => setShowDropdown(false), 200)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") handleCustomSearch();
-                }}
+                onKeyDown={handleKeyDown}
               />
               <button
                 onClick={handleCustomSearch}
@@ -127,22 +165,26 @@ export default function DestinationGrid({ onSelect }) {
             {showDropdown && searchQuery.trim() && (
               <div className="absolute top-full left-0 right-0 mt-3 bg-[#0a0f1d] border border-white/10 rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.5)] overflow-hidden z-50 max-h-80 overflow-y-auto">
                 {filteredDestinations.length > 0 ? (
-                  filteredDestinations.map(dest => (
+                  filteredDestinations.map((dest, idx) => (
                     <div 
                       key={dest.id}
                       onClick={() => onSelect(dest)}
-                      className="px-5 py-4 hover:bg-white/5 cursor-pointer flex items-center justify-between border-b border-white/5 last:border-0 group transition-colors"
+                      className={`px-5 py-4 hover:bg-white/5 cursor-pointer flex items-center justify-between border-b border-white/5 last:border-0 group transition-colors ${activeIndex === idx ? 'bg-white/10' : ''}`}
                     >
                       <div className="flex items-center gap-4">
                         <div className="w-10 h-10 rounded-lg overflow-hidden shrink-0">
                           <img src={dest.image} alt={dest.name} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
                         </div>
                         <div>
-                          <p className="font-bold text-white group-hover:text-orange-400 transition-colors">{dest.name}</p>
-                          <p className="text-[10px] text-white/40 font-medium uppercase tracking-wider">{dest.state}</p>
+                          <p className={`font-bold transition-colors ${activeIndex === idx ? 'text-orange-400' : 'text-white group-hover:text-orange-400'}`}>
+                            {highlightMatch(dest.name, searchQuery)}
+                          </p>
+                          <p className="text-[10px] text-white/40 font-medium uppercase tracking-wider">
+                            {highlightMatch(dest.state, searchQuery)}
+                          </p>
                         </div>
                       </div>
-                      <ArrowRight size={14} className="text-white/20 group-hover:text-orange-400 group-hover:translate-x-1 transition-all" />
+                      <ArrowRight size={14} className={`transition-all ${activeIndex === idx ? 'text-orange-400 translate-x-1' : 'text-white/20 group-hover:text-orange-400 group-hover:translate-x-1'}`} />
                     </div>
                   ))
                 ) : (
@@ -157,40 +199,6 @@ export default function DestinationGrid({ onSelect }) {
               </div>
             )}
           </div>
-        </div>
-
-          {/* TITLE */}
-          <h2
-            className="
-              text-4xl
-              md:text-6xl
-              font-black
-              leading-[1]
-              tracking-tight
-              text-[#f3eee8]
-              mb-6
-            "
-          >
-            Discover Beautiful
-            <br />
-            Weekend Escapes.
-          </h2>
-
-          {/* DESC */}
-          <p
-            className="
-              max-w-2xl
-              mx-auto
-              text-[15px]
-              md:text-lg
-              leading-relaxed
-              text-[#d2cbc2]
-            "
-          >
-            Explore peaceful mountains, hidden forests,
-            tropical beaches, and breathtaking destinations
-            crafted for unforgettable travel experiences.
-          </p>
         </div>
 
         {/* GRID */}

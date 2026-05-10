@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import useTripStore from "../store/tripStore";
-import { DESTINATIONS, MOCK_ACTIVITIES, fetchWeather } from "../lib/api";
-import { ArrowLeft, ChevronDown, ChevronUp, Plus, Minus, Check, CheckCircle2, X } from "lucide-react";
+import { DESTINATIONS, MOCK_ACTIVITIES, fetchWeather, fetchListings, mapDbToActivity, mapDbToHotel } from "../lib/api";
+import { ArrowLeft, ChevronDown, ChevronUp, Plus, Minus, Check, CheckCircle2, X, Search } from "lucide-react";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
 import toast from "react-hot-toast";
@@ -112,8 +112,10 @@ export default function PlanPage() {
     selectedActivities,
     toggleActivity,
     cart,
-    addToCart
-
+    addToCart,
+    selectedHotel,
+    selectHotel,
+    clearHotel
   } = useTripStore();
 
   const parseDateSafe = (d) => {
@@ -133,6 +135,35 @@ export default function PlanPage() {
   const [selectedModalActivity, setSelectedModalActivity] = useState(null);
   const [showBillModal, setShowBillModal] = useState(false);
   const [activeMapActivity, setActiveMapActivity] = useState(MOCK_ACTIVITIES[0]);
+  const [destSearchQuery, setDestSearchQuery] = useState("");
+  const [dbActivities, setDbActivities] = useState([]);
+  const [dbStays, setDbStays] = useState([]);
+
+  useEffect(() => {
+    if (!destination?.name) return;
+    
+    fetchListings().then(listings => {
+      // Robust location matching
+      const targetDest = destination.name.toLowerCase().trim();
+      const locationFiltered = listings.filter(l => {
+        const cityMatch = l.city && l.city.toLowerCase().trim().includes(targetDest);
+        const locMatch = l.location && l.location.toLowerCase().trim().includes(targetDest);
+        const stateMatch = l.state && l.state.toLowerCase().trim().includes(targetDest);
+        return cityMatch || locMatch || stateMatch;
+      });
+
+      const acts = locationFiltered.filter(l => l.category === "Activities").map(mapDbToActivity);
+      const stays = locationFiltered.filter(l => l.category === "Stay").map(mapDbToHotel);
+      
+      setDbActivities(acts);
+      setDbStays(stays);
+    }).catch(err => {
+      console.error("PlanPage listing fetch error:", err);
+    });
+  }, [destination]);
+
+  const allActivities = [...MOCK_ACTIVITIES, ...dbActivities];
+  const allStays = [...dbStays]; // Only show user-submitted stays on this map for now, or merge if desired
 
   // Node positions for the map
   const mapPositions = [
@@ -182,13 +213,13 @@ export default function PlanPage() {
     }
     // Sync selectedActivities to cart
     selectedActivities.forEach(id => {
-      const act = MOCK_ACTIVITIES.find(a => a.id === id);
+      const act = allActivities.find(a => a.id === id);
       if (act && !cart.some(c => c.id === id)) {
         addToCart({ ...act, type: "activity", price: act.price * members });
       }
     });
 
-    setShowBillModal(true);
+    navigate(`/itinerary/${destination.id}`);
 
   };
 
@@ -281,8 +312,24 @@ export default function PlanPage() {
                   </div>
                   
                   {destDropdownOpen && (
-                    <div className="border-t border-slate-100 max-h-[400px] overflow-y-auto bg-white/95">
-                      {DESTINATIONS.map((dest) => (
+                    <div className="border-t border-slate-100 max-h-[500px] overflow-y-auto bg-white/95">
+                      <div className="sticky top-0 bg-white p-3 border-b border-slate-100 z-10">
+                        <div className="relative">
+                          <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                          <input 
+                            type="text"
+                            placeholder="Search destinations..."
+                            className="w-full pl-10 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm outline-none focus:border-orange-500 focus:bg-white transition-all"
+                            value={destSearchQuery}
+                            onChange={(e) => setDestSearchQuery(e.target.value)}
+                            onClick={(e) => e.stopPropagation()}
+                          />
+                        </div>
+                      </div>
+                      {DESTINATIONS.filter(d => 
+                        d.name.toLowerCase().includes(destSearchQuery.toLowerCase()) || 
+                        d.state.toLowerCase().includes(destSearchQuery.toLowerCase())
+                      ).map((dest) => (
                         <div 
                           key={dest.id}
                           onClick={() => {
@@ -415,6 +462,46 @@ export default function PlanPage() {
                     <p className="text-xs text-slate-500 font-bold tracking-wider">₹25K+ {budgetType === 'per_person' ? '/pp' : ''}</p>
                   </button>
                 </div>
+
+                {/* New Section: Economy Homestays */}
+                {getTier(perPersonBudget) === "ECONOMY TIER" && (
+                  <div className="mt-8 animate-in fade-in slide-in-from-top-4 duration-500">
+                    <div className="flex items-center gap-3 mb-6">
+                      <div className="w-8 h-[2px] bg-emerald-500"></div>
+                      <h3 className="text-sm font-bold text-emerald-600 uppercase tracking-widest">Affordable Local Gems</h3>
+                    </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      {dbStays.filter(s => s.price < 3000).length > 0 ? (
+                        dbStays.filter(s => s.price < 3000).map(stay => (
+                          <div key={stay.id} className="bg-white border border-slate-200 rounded-2xl p-4 flex gap-4 shadow-sm hover:shadow-md transition-shadow">
+                            <img src={stay.image} alt={stay.name} className="w-20 h-20 rounded-xl object-cover" />
+                            <div className="flex-1">
+                              <div className="flex justify-between items-start">
+                                <h4 className="font-bold text-slate-900 text-sm">{stay.name}</h4>
+                                <span className="text-[9px] font-bold bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full uppercase">Local</span>
+                              </div>
+                              <p className="text-xs text-slate-500 mt-1">₹{stay.price}/night</p>
+                              <button 
+                                onClick={() => {
+                                  selectHotel(stay);
+                                  toast.success(`${stay.name} selected!`);
+                                }}
+                                className="mt-3 text-[10px] font-bold text-orange-500 uppercase tracking-wider hover:text-orange-600"
+                              >
+                                {selectedHotel?.id === stay.id ? "Selected ✓" : "Quick Book"}
+                              </button>
+                            </div>
+                          </div>
+                        ))
+                      ) : (
+                        <div className="col-span-full py-8 px-6 bg-slate-50 border border-dashed border-slate-200 rounded-3xl text-center">
+                          <p className="text-xs text-slate-500 font-medium italic mb-1">No budget homestays found in {destination.name} yet.</p>
+                          <p className="text-[10px] text-slate-400">Stay Tuned !</p>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
               </div>
 
               {/* Travel Dates */}
@@ -605,14 +692,24 @@ export default function PlanPage() {
                       </div>
 
                       <button 
-                        onClick={() => toggleActivity(activeMapActivity.id)}
+                        onClick={() => {
+                          if (activeMapActivity.type) {
+                            if (selectedHotel?.id === activeMapActivity.id) {
+                              clearHotel();
+                            } else {
+                              selectHotel(activeMapActivity);
+                            }
+                          } else {
+                            toggleActivity(activeMapActivity.id);
+                          }
+                        }}
                         className={`w-full py-5 rounded-2xl font-bold uppercase tracking-widest text-[11px] transition-all flex items-center justify-center gap-3 shadow-md border-2 ${
-                          selectedActivities.includes(activeMapActivity.id) 
+                          (activeMapActivity.type ? selectedHotel?.id === activeMapActivity.id : selectedActivities.includes(activeMapActivity.id))
                             ? 'bg-slate-100 text-slate-600 border-slate-200 hover:bg-slate-200' 
                             : 'bg-orange-500 text-white border-orange-500 hover:bg-orange-600 hover:shadow-lg hover:-translate-y-1'
                         }`}
                       >
-                        {selectedActivities.includes(activeMapActivity.id) ? (
+                        {(activeMapActivity.type ? selectedHotel?.id === activeMapActivity.id : selectedActivities.includes(activeMapActivity.id)) ? (
                           <> <Check size={16} /> Added to Trip </>
                         ) : (
                           <> <Plus size={16} /> Add to Trip </>
@@ -641,32 +738,46 @@ export default function PlanPage() {
                 {/* Click catcher so iframe doesn't swallow hover/click events, but pins are clickable */}
                 <div className="absolute inset-0 pointer-events-auto z-0"></div>
 
-                {/* Activity Map Pins */}
+                {/* Map Pins (Activities & Stays) */}
                 <div className="absolute inset-0 z-10 pointer-events-none">
-                  {MOCK_ACTIVITIES.map((act, index) => {
-                    const isActive = activeMapActivity?.id === act.id;
-                    const isSelected = selectedActivities.includes(act.id);
+                  {[...allActivities, ...allStays].map((item, index) => {
+                    const isActive = activeMapActivity?.id === item.id;
+                    const isSelected = selectedActivities.includes(item.id) || (item.type && useTripStore.getState().selectedHotel?.id === item.id);
                     const pos = mapPositions[index % mapPositions.length];
+                    const isStay = !!item.type; // Stays have 'type', activities don't
                     
                     return (
                       <div 
-                        key={act.id}
+                        key={item.id}
                         className="absolute transform -translate-x-1/2 -translate-y-1/2 pointer-events-auto"
                         style={{ top: pos.top, left: pos.left }}
                       >
-                        {/* Connection line indicator to label */}
-                        <div className="absolute top-1/2 left-1/2 w-8 h-[1px] bg-slate-600 transform -rotate-45 origin-left pointer-events-none opacity-50"></div>
-                        
                         {/* Label */}
                         <div className={`absolute top-[-30px] left-[35px] bg-white/95 backdrop-blur-sm px-3 py-1.5 rounded-lg border border-slate-200 shadow-md whitespace-nowrap transition-all duration-300 pointer-events-none ${isActive ? 'opacity-100 scale-100 translate-y-0' : 'opacity-0 scale-95 translate-y-2'}`}>
-                          <p className="text-xs font-bold text-slate-800">{act.name}</p>
+                          <p className="text-xs font-bold text-slate-800">{item.name}</p>
                         </div>
 
                         {/* Map Pin Button */}
                         <button
-                          onClick={() => setActiveMapActivity(act)}
+                          onClick={() => {
+                            if (isStay) {
+                              // If it's a stay, we could show a modal or just navigate, 
+                              // but let's just make it "active" for now to show details
+                              setActiveMapActivity({
+                                ...item,
+                                category: item.type === 'hotel' ? 'Hotel' : item.type === 'hostel' ? 'Hostel' : 'Home',
+                                thumb1: item.image,
+                                shortDesc: item.description || "Premium stay experience",
+                                duration: "Nightly"
+                              });
+                            } else {
+                              setActiveMapActivity(item);
+                            }
+                          }}
                           className={`relative group/pin flex flex-col items-center justify-center w-14 h-14 rounded-full transition-all duration-300 shadow-xl border-2 ${
-                            isActive ? 'bg-orange-500 border-white scale-110 z-20 ring-4 ring-orange-500/30' : 'bg-slate-900 border-slate-700 hover:bg-slate-800 hover:scale-110'
+                            isActive ? 'bg-orange-500 border-white scale-110 z-20 ring-4 ring-orange-500/30' : 
+                            isStay ? 'bg-indigo-600 border-indigo-400 hover:bg-indigo-500 hover:scale-110' :
+                            'bg-slate-900 border-slate-700 hover:bg-slate-800 hover:scale-110'
                           }`}
                         >
                           {/* Ripple Effect if active */}
@@ -675,7 +786,8 @@ export default function PlanPage() {
                           )}
                           
                           <span className="text-xl">
-                            {act.category === 'Adventure' ? '🛶' : act.category === 'Extreme' ? '🪂' : act.category === 'Wellness' ? '🧘' : act.category === 'Culture' ? '🪔' : '⛺'}
+                            {isStay ? (item.type === 'hotel' ? '🏨' : '🏘️') : 
+                             (item.category === 'Adventure' ? '🛶' : item.category === 'Extreme' ? '🪂' : item.category === 'Wellness' ? '🧘' : item.category === 'Culture' ? '🪔' : '⛺')}
                           </span>
 
                           {/* Selection Checkmark */}

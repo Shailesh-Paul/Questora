@@ -171,6 +171,52 @@ export const MOCK_HOTELS = [
   { id: "lh2", name: "Riverside Cottage", type: "home", stars: 4, price: 3200, currency: "INR", amenities: ["Private Access", "Pet Friendly", "Kitchen", "Quiet"], image: "https://images.unsplash.com/photo-1499793983690-e29da59ef1c2?w=600" }
 ];
 
+export const fetchListings = async () => {
+  try {
+    const apiUrl = process.env.REACT_APP_API_URL || "http://localhost:5000/api";
+    const res = await axios.get(`${apiUrl}/listings`);
+    return res.data || [];
+  } catch (err) {
+    console.error("Failed to fetch listings:", err);
+    return [];
+  }
+};
+
+export const mapDbToRental = (listing) => ({
+  id: listing._id,
+  name: listing.title,
+  category: listing.subCategory || 'cars',
+  pricePerHour: listing.price,
+  rushHourPrice: Math.round(listing.price * 1.2),
+  image: listing.images?.[0] || 'https://images.unsplash.com/photo-1533473359331-0135ef1b58bf?w=600',
+  features: listing.facilities || [],
+  budgetTier: listing.price < 800 ? "ECONOMY TIER" : (listing.price < 2500 ? "PREMIUM TIER" : "LUXURY TIER")
+});
+
+export const mapDbToHotel = (listing) => ({
+  id: listing._id,
+  name: listing.title,
+  type: listing.subCategory || 'hotel',
+  stars: 4,
+  price: listing.price,
+  currency: 'INR',
+  amenities: listing.facilities || [],
+  image: listing.images?.[0] || 'https://images.unsplash.com/photo-1520250497591-112f2f40a3f4?w=600'
+});
+
+export const mapDbToActivity = (listing) => ({
+  id: listing._id,
+  name: listing.title,
+  duration: '2 hrs',
+  price: listing.price,
+  category: listing.subCategory || 'Adventure',
+  rating: 4.5,
+  slots: listing.maxGuests || 10,
+  shortDesc: listing.description,
+  thumb1: listing.images?.[0] || 'https://images.unsplash.com/photo-1530866495561-507c9faab2ed?w=300',
+  thumb2: listing.images?.[1] || listing.images?.[0] || 'https://images.unsplash.com/photo-1544627255-75e11a2f1ab6?w=300'
+});
+
 export const MOCK_ACTIVITIES = [
   { id: "a1", name: "White Water Rafting — Grade 4", duration: "3 hrs", price: 1200, category: "Extreme", rating: 4.8, slots: 20, shortDesc: "Thrilling rapids experience", thumb1: "https://images.unsplash.com/photo-1530866495561-507c9faab2ed?w=300", thumb2: "https://images.unsplash.com/photo-1544627255-75e11a2f1ab6?w=300" },
   { id: "a2", name: "Bungee Jumping at Mohan Chatti", duration: "2 hrs", price: 3500, category: "Extreme", rating: 4.9, slots: 8, shortDesc: "India's highest bungee", thumb1: "https://images.unsplash.com/photo-1522030299830-16b8d3d049f5?w=300", thumb2: "https://images.unsplash.com/photo-1523490977239-65d1d6a666e4?w=300" },
@@ -180,6 +226,17 @@ export const MOCK_ACTIVITIES = [
   { id: "a6", name: "Ganga Aarti & Local Walk", duration: "2 hrs", price: 500, category: "Culture", rating: 4.9, slots: 50, shortDesc: "Iconic evening ritual", thumb1: "https://images.unsplash.com/photo-1582298538104-e59e13b8650d?w=300", thumb2: "https://images.unsplash.com/photo-1561361513-2d000a50f0dc?w=300" },
   { id: "a7", name: "Himalayan Mountain Biking", duration: "4 hrs", price: 1800, category: "Extreme", rating: 4.7, slots: 10, shortDesc: "Rugged mountain trails", thumb1: "https://images.unsplash.com/photo-1544155989-07536f0d3041?w=300", thumb2: "https://images.unsplash.com/photo-1512413316925-fd4b93f31521?w=300" },
   { id: "a8", name: "Pottery Class with Locals", duration: "2 hrs", price: 600, category: "Culture", rating: 4.5, slots: 12, shortDesc: "Traditional clay workshop", thumb1: "https://images.unsplash.com/photo-1565193998248-d500a72183b1?w=300", thumb2: "https://images.unsplash.com/photo-1590333746438-d81fd061609b?w=300" }
+];
+
+export const MOCK_RENTALS = [
+  { id: "r1", name: "Hyundai Creta", category: "cars", pricePerHour: 500, rushHourPrice: 750, image: "https://images.unsplash.com/photo-1533473359331-0135ef1b58bf?w=600", features: ["AC", "Automatic", "5 Seats"], budgetTier: "PREMIUM TIER" },
+  { id: "r2", name: "Maruti Swift", category: "cars", pricePerHour: 300, rushHourPrice: 450, image: "https://images.unsplash.com/photo-1590362891991-f776e747a588?w=600", features: ["AC", "Manual", "5 Seats"], budgetTier: "ECONOMY TIER" },
+  { id: "r3", name: "Mercedes C-Class", category: "cars", pricePerHour: 1500, rushHourPrice: 2200, image: "https://images.unsplash.com/photo-1553440569-bcc63803a83d?w=600", features: ["Luxury", "Sunroof", "5 Seats"], budgetTier: "LUXURY TIER" },
+  { id: "r4", name: "Royal Enfield Classic 350", category: "bikes", pricePerHour: 150, rushHourPrice: 250, image: "https://images.unsplash.com/photo-1558981403-c5f91cbba527?w=600", features: ["Cruiser", "Retro", "2 Seats"], budgetTier: "ECONOMY TIER" },
+  { id: "r5", name: "KTM Duke 390", category: "bikes", pricePerHour: 200, rushHourPrice: 300, image: "https://images.unsplash.com/photo-1599819811279-d5ad9cccf838?w=600", features: ["Sport", "Fast", "2 Seats"], budgetTier: "PREMIUM TIER" },
+  { id: "r6", name: "Activa 6G", category: "scooty", pricePerHour: 80, rushHourPrice: 130, image: "https://images.unsplash.com/photo-1591637333184-19aa84b3e01f?w=600", features: ["Easy to ride", "Storage", "2 Seats"], budgetTier: "ECONOMY TIER" },
+  { id: "r7", name: "Vespa Elegante", category: "scooty", pricePerHour: 120, rushHourPrice: 180, image: "https://images.unsplash.com/photo-1597813583279-2479f649887f?w=600", features: ["Stylish", "Smooth", "2 Seats"], budgetTier: "PREMIUM TIER" },
+  { id: "r8", name: "Mountain MTB Cycle", category: "cycles", pricePerHour: 30, rushHourPrice: 50, image: "https://images.unsplash.com/photo-1532298229144-0ec0c57515c7?w=600", features: ["Off-road", "Geared", "1 Seat"], budgetTier: "ECONOMY TIER" }
 ];
 
 export const DESTINATIONS = [

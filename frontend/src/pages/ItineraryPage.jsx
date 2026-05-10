@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import useTripStore from "../store/tripStore";
-import { MOCK_HOTELS, MOCK_ACTIVITIES, generateAIInsights } from "../lib/api";
+import { MOCK_HOTELS, MOCK_ACTIVITIES, generateAIInsights, fetchListings, mapDbToHotel, mapDbToActivity } from "../lib/api";
 import { ArrowLeft, Star, Clock, Users, ExternalLink, CreditCard, Sparkles, X, CheckCircle, Wallet } from "lucide-react";
 import toast from "react-hot-toast";
 
@@ -15,6 +15,27 @@ export default function ItineraryPage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [activityFilter, setActivityFilter] = useState("All");
   const [aiInsights, setAiInsights] = useState({});
+  const [dbStays, setDbStays] = useState([]);
+  const [dbActivities, setDbActivities] = useState([]);
+
+  useEffect(() => {
+    if (!destination?.name) return;
+
+    fetchListings().then(listings => {
+      const targetDest = destination.name.toLowerCase().trim();
+      const locationFiltered = listings.filter(l => 
+        l.location && l.location.toLowerCase().includes(targetDest)
+      );
+
+      const stays = locationFiltered.filter(l => l.category === "Stay").map(mapDbToHotel);
+      const acts = locationFiltered.filter(l => l.category === "Activities").map(mapDbToActivity);
+      setDbStays(stays);
+      setDbActivities(acts);
+    }).catch(err => console.error("Itinerary fetch error:", err));
+  }, [destination]);
+
+  const allHotels = [...MOCK_HOTELS, ...dbStays];
+  const allActivities = [...MOCK_ACTIVITIES, ...dbActivities];
 
   const inCart = (id) => cart.some((i) => i.id === id);
 
@@ -36,7 +57,7 @@ export default function ItineraryPage() {
   // Pre-fetch AI insights for hotels when modal opens
   useEffect(() => {
     if (isModalOpen && activeCategory) {
-      const hotels = MOCK_HOTELS.filter(h => h.type === activeCategory);
+      const hotels = allHotels.filter(h => h.type === activeCategory);
       hotels.forEach(hotel => {
         if (!aiInsights[hotel.id]) {
           generateAIInsights(hotel.name, hotel.type, { destination: destination?.name, budget, members }).then(insight => {
@@ -48,10 +69,10 @@ export default function ItineraryPage() {
   }, [isModalOpen, activeCategory, aiInsights, destination, budget, members]);
 
   const filteredActivities = activityFilter === "All" 
-    ? MOCK_ACTIVITIES 
-    : MOCK_ACTIVITIES.filter(a => a.category === activityFilter);
+    ? allActivities 
+    : allActivities.filter(a => a.category === activityFilter);
 
-  const categories = ["All", ...Array.from(new Set(MOCK_ACTIVITIES.map(a => a.category)))];
+  const categories = ["All", ...Array.from(new Set(allActivities.map(a => a.category)))];
 
   const totalCost = cart.reduce((sum, i) => sum + i.price, 0) + (selectedHotel ? selectedHotel.price * nights : 0);
   const remaining = getRemainingBudget();
@@ -237,13 +258,18 @@ export default function ItineraryPage() {
             </div>
             
             <div className="overflow-y-auto p-6 space-y-6 flex-1 custom-scrollbar">
-              {MOCK_HOTELS.filter(h => h.type === activeCategory).map(hotel => (
+              {allHotels.filter(h => h.type === activeCategory).map(hotel => (
                 <div key={hotel.id} className={`flex flex-col md:flex-row gap-6 p-4 rounded-2xl border transition-all ${selectedHotel?.id === hotel.id ? 'bg-orange-500/10 border-orange-500/50' : 'bg-white/5 border-white/10 hover:bg-white/10'}`}>
                   <img src={hotel.image} alt={hotel.name} className="w-full md:w-48 h-48 rounded-xl object-cover" />
                   
                   <div className="flex-1 flex flex-col">
                     <div className="flex justify-between items-start mb-2">
-                      <h4 className="text-xl font-bold">{hotel.name}</h4>
+                      <div className="flex flex-col gap-1">
+                        <h4 className="text-xl font-bold">{hotel.name}</h4>
+                        {hotel.id.length > 20 && ( // MongoDB IDs are long, mock IDs are short
+                          <span className="w-max text-[9px] font-bold bg-emerald-500/20 text-emerald-400 px-2 py-0.5 rounded-full uppercase tracking-tighter">Verified Local Gem</span>
+                        )}
+                      </div>
                       <div className="flex gap-1">
                         {Array.from({length: hotel.stars}).map((_, i) => <Star key={i} size={14} className="fill-yellow-400 text-yellow-400" />)}
                       </div>
@@ -282,7 +308,7 @@ export default function ItineraryPage() {
                 </div>
               ))}
               
-              {MOCK_HOTELS.filter(h => h.type === activeCategory).length === 0 && (
+              {allHotels.filter(h => h.type === activeCategory).length === 0 && (
                 <div className="text-center py-12 text-white/50">
                   No {activeCategory}s currently available in this area.
                 </div>
