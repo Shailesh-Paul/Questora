@@ -8,7 +8,7 @@ import "react-datepicker/dist/react-datepicker.css";
 import toast from "react-hot-toast";
 import { format, differenceInDays, startOfMonth, endOfMonth, startOfWeek, endOfWeek, eachDayOfInterval, isSameMonth, isSameDay, isWithinInterval, isBefore, startOfDay, addDays, addMonths, subMonths } from "date-fns";
 
-function CustomCalendar({ dateRange, setDateRange, weather }) {
+function CustomCalendar({ dateRange, setDateRange, weather, destinationId }) {
   const [currentMonth, setCurrentMonth] = useState(startOfMonth(new Date()));
 
   const monthStart = startOfMonth(currentMonth);
@@ -17,6 +17,26 @@ function CustomCalendar({ dateRange, setDateRange, weather }) {
   const endDate = endOfWeek(monthEnd);
 
   const days = eachDayOfInterval({ start: startDate, end: endDate });
+
+  const [availabilityData, setAvailabilityData] = useState({});
+
+  useEffect(() => {
+    if (!destinationId) return;
+    const fetchAvailability = async () => {
+      try {
+        const startStr = startDate.toISOString();
+        const endStr = endDate.toISOString();
+        const res = await fetch(`http://localhost:5000/api/availability?destinationId=${destinationId}&start=${startStr}&end=${endStr}`);
+        const data = await res.json();
+        if (data.dailyTotals) {
+          setAvailabilityData(data.dailyTotals);
+        }
+      } catch (err) {
+        console.error("Failed to fetch availability:", err);
+      }
+    };
+    fetchAvailability();
+  }, [destinationId, currentMonth]);
 
   const onDateClick = (day) => {
     if (isBefore(day, startOfDay(new Date()))) return;
@@ -47,12 +67,18 @@ function CustomCalendar({ dateRange, setDateRange, weather }) {
 
   const getAvailabilityForDay = (day) => {
     if (isBefore(day, startOfDay(new Date()))) return null;
-    // Mock availability based on date
-    const seed = day.getDate() + day.getDay() * 2;
-    // Weekends (0, 6) get higher baseline
-    const isWeekend = day.getDay() === 0 || day.getDay() === 6;
-    let score = isWeekend ? 60 : 20;
-    score += (seed % 40); // 0 to 40 randomish addition
+    
+    // Assume daily capacity of 50 for the hackathon simulation
+    const MAX_CAPACITY = 50;
+    const dateStr = day.toISOString().split('T')[0];
+    const booked = availabilityData ? (availabilityData[dateStr] || 0) : 0;
+    
+    let score = (booked / MAX_CAPACITY) * 100;
+    // Just to have some visual variance if 0 bookings, add a tiny bit of random baseline based on weekend
+    if (booked === 0) {
+       const isWeekend = day.getDay() === 0 || day.getDay() === 6;
+       score = isWeekend ? 30 : 10;
+    }
     
     if (score >= 80) return { status: 'red', text: 'Low Availability', colorClass: 'bg-red-500' };
     if (score >= 50) return { status: 'yellow', text: 'Filling Fast', colorClass: 'bg-yellow-500' };
@@ -476,9 +502,8 @@ export default function PlanPage() {
                   <button className="px-6 py-3 bg-white/80 border-2 border-slate-200 rounded-xl text-sm font-bold hover:border-orange-500 hover:text-orange-600 transition-all shadow-sm">+3w</button>
                 </div>
 
-                {/* Weather Calendar */}
                 <div className="mb-6 max-w-lg">
-                  <CustomCalendar dateRange={dateRange} setDateRange={setDateRange} weather={weather} />
+                  <CustomCalendar dateRange={dateRange} setDateRange={setDateRange} weather={weather} destinationId={destination.id} />
                 </div>
 
                 {/* Check In / Out Inputs restored */}

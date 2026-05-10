@@ -1,7 +1,29 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import { Activity, Zap, TrendingUp, AlertTriangle, Clock, ShieldAlert, BadgePercent, ChevronRight } from 'lucide-react';
+import useTripStore from '../store/tripStore';
 
 export default function DemandEngine({ destination, budget }) {
+  const { dateRange } = useTripStore();
+  const [availabilityData, setAvailabilityData] = useState({});
+
+  useEffect(() => {
+    if (!destination?.id || !dateRange.start || !dateRange.end) return;
+    const fetchAvailability = async () => {
+      try {
+        const startStr = dateRange.start.toISOString();
+        const endStr = dateRange.end.toISOString();
+        const res = await fetch(`http://localhost:5000/api/availability?destinationId=${destination.id}&start=${startStr}&end=${endStr}`);
+        const data = await res.json();
+        if (data.dailyTotals) {
+          setAvailabilityData(data.dailyTotals);
+        }
+      } catch (err) {
+        console.error("Failed to fetch availability:", err);
+      }
+    };
+    fetchAvailability();
+  }, [destination, dateRange]);
+
   // Use destination name length to generate consistent pseudo-random values for demo purposes
   const seed = destination?.name?.length || 5;
   
@@ -11,8 +33,33 @@ export default function DemandEngine({ destination, budget }) {
     const isFestivalSeason = new Date().getMonth() > 8; // e.g. Oct-Dec
     
     // Formula 1: Availability
-    const TotalRooms = 120 + (seed * 10);
-    const RemainingRooms = Math.max(2, Math.floor(TotalRooms * (0.1 + (seed % 3) * 0.05)));
+    // Use real availability fetched from backend
+    const MAX_DAILY_CAPACITY = 100;
+    
+    // Calculate total booked in the selected range
+    let totalBooked = 0;
+    let daysCount = 0;
+    
+    if (dateRange.start && dateRange.end) {
+      let current = new Date(dateRange.start);
+      const end = new Date(dateRange.end);
+      current.setHours(0,0,0,0);
+      end.setHours(0,0,0,0);
+      
+      while (current <= end) {
+        daysCount++;
+        const dateStr = current.toISOString().split('T')[0];
+        totalBooked += availabilityData[dateStr] || 0;
+        current.setDate(current.getDate() + 1);
+      }
+    }
+
+    if (daysCount === 0) daysCount = 1; // fallback
+    const TotalRooms = MAX_DAILY_CAPACITY * daysCount;
+    // Add minor baseline for visuals
+    totalBooked += Math.max(0, Math.floor(TotalRooms * (0.1 + (seed % 3) * 0.05)));
+    
+    const RemainingRooms = Math.max(0, TotalRooms - totalBooked);
     const AvailabilityPercentage = Math.round(((TotalRooms - RemainingRooms) / TotalRooms) * 100);
     
     // Formula 2: Rush Score
@@ -20,9 +67,9 @@ export default function DemandEngine({ destination, budget }) {
     const FestivalWeight = isFestivalSeason ? 40 : 10;
     const WeatherWeight = 15; // Assume favorable
     const SearchTrendWeight = 10 + (seed * 2);
-    const BookingWeight = 15;
+    const BookingWeight = (totalBooked / TotalRooms) * 30; // Dynamic based on real bookings
     
-    const RushScore = WeekendWeight + FestivalWeight + WeatherWeight + SearchTrendWeight + BookingWeight;
+    const RushScore = Math.min(100, Math.round(WeekendWeight + FestivalWeight + WeatherWeight + SearchTrendWeight + BookingWeight));
     
     // Formula 3: Dynamic Price Savings (Recommendation)
     const WeekendFactor = isWeekend ? 1.3 : 1.0;

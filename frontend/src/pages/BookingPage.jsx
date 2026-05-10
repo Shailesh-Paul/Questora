@@ -16,11 +16,13 @@ const loadRazorpayScript = () => {
 
 export default function BookingPage() {
   const navigate = useNavigate();
-  const { cart, selectedHotel, members, destination, reset } = useTripStore();
+  const { cart, selectedHotel, members, destination, reset, dateRange } = useTripStore();
   const [isProcessing, setIsProcessing] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
 
-  const nights = 2; // For mock purpose as used in ItineraryPage
+  const nights = dateRange.start && dateRange.end 
+    ? Math.max(1, Math.ceil((new Date(dateRange.end) - new Date(dateRange.start)) / (1000 * 60 * 60 * 24))) 
+    : 2;
   const totalCost = cart.reduce((sum, i) => sum + i.price, 0) + (selectedHotel ? selectedHotel.price * nights : 0);
 
   useEffect(() => {
@@ -61,9 +63,34 @@ export default function BookingPage() {
         description: `Trip to ${destination?.name}`,
         image: destination?.image || "https://images.unsplash.com/photo-1626621341517-bbf3d9990a23?w=200",
         order_id: orderData.id,
-        handler: function (response) {
-          toast.success("Payment Successful!");
-          setIsSuccess(true);
+        handler: async function (response) {
+          try {
+            // Compile items for booking
+            const bookingItems = [...cart];
+            if (selectedHotel) {
+              bookingItems.push({ ...selectedHotel, type: 'hotel' });
+            }
+
+            // Record booking in backend
+            await fetch("http://localhost:5000/api/bookings", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                items: bookingItems,
+                destinationId: destination.id,
+                startDate: dateRange.start || new Date().toISOString(),
+                endDate: dateRange.end || new Date(Date.now() + 86400000 * 2).toISOString(),
+                quantity: members
+              })
+            });
+            
+            toast.success("Payment Successful!");
+            setIsSuccess(true);
+          } catch (e) {
+            console.error("Failed to record booking:", e);
+            toast.success("Payment Successful! (Booking record failed)");
+            setIsSuccess(true);
+          }
         },
         prefill: {
           name: "Traveler",

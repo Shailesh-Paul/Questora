@@ -14,6 +14,7 @@ app.use(express.json());
 
 // Routes
 app.use('/api/listings', require('./routes/listingRoutes'));
+const Booking = require('./models/Booking');
 
 // Basic Route
 app.get('/api/health', (req, res) => {
@@ -86,10 +87,102 @@ app.post('/api/create-order', async (req, res) => {
   }
 });
 
-// MongoDB Connection
-mongoose.connect(process.env.MONGO_URI || 'mongodb://localhost:27017/weekendwander')
-  .then(() => console.log('MongoDB Connected'))
-  .catch(err => console.log('MongoDB Connection Error: ', err));
+// Real-Time Availability Routes (File-based Persistence for Zero Setup)
+const fs = require('fs').promises;
+const path = require('path');
+const BOOKINGS_FILE = path.join(__dirname, 'bookings.json');
+
+// Helper to load bookings
+async function loadBookings() {
+  try {
+    const data = await fs.readFile(BOOKINGS_FILE, 'utf8');
+    return JSON.parse(data);
+  } catch (err) {
+    return [];
+  }
+}
+
+// Helper to save bookings
+async function saveBookings(bookings) {
+  await fs.writeFile(BOOKINGS_FILE, JSON.stringify(bookings, null, 2), 'utf8');
+}
+
+app.post('/api/bookings', async (req, res) => {
+  try {
+    const { items, destinationId, startDate, endDate, quantity } = req.body;
+    
+    if (!items || !destinationId || !startDate || !endDate) {
+      return res.status(400).json({ error: 'Missing required fields' });
+    }
+
+    const bookings = await loadBookings();
+    
+    const newBookings = items.map(item => ({
+      id: Date.now().toString() + Math.random().toString(36).substr(2, 5),
+      itemId: item.id,
+      type: item.type || 'activity',
+      destinationId,
+      startDate: new Date(startDate).toISOString(),
+      endDate: new Date(endDate).toISOString(),
+      quantityBooked: quantity || 1
+    }));
+    
+    bookings.push(...newBookings);
+    await saveBookings(bookings);
+    
+    res.status(201).json({ message: 'Bookings successful' });
+  } catch (err) {
+    console.error("Booking Error:", err);
+    res.status(500).json({ error: 'Failed to save bookings' });
+  }
+});
+
+app.get('/api/availability', async (req, res) => {
+  try {
+    const { destinationId, start, end } = req.query;
+    
+    if (!destinationId || !start || !end) {
+      return res.status(400).json({ error: 'Missing parameters' });
+    }
+
+    const queryStart = new Date(start);
+    const queryEnd = new Date(end);
+    
+    const bookings = await loadBookings();
+
+    const relevantBookings = bookings.filter(b => {
+      const bStart = new Date(b.startDate);
+      const bEnd = new Date(b.endDate);
+      return b.destinationId === destinationId && bStart <= queryEnd && bEnd >= queryStart;
+    });
+
+    const dailyTotals = {};
+    
+    relevantBookings.forEach(booking => {
+      let current = new Date(booking.startDate);
+      const end = new Date(booking.endDate);
+      current.setHours(0,0,0,0);
+      end.setHours(0,0,0,0);
+      
+      while (current <= end) {
+        const dateStr = current.toISOString().split('T')[0];
+        if (!dailyTotals[dateStr]) dailyTotals[dateStr] = 0;
+        dailyTotals[dateStr] += booking.quantityBooked;
+        
+        current.setDate(current.getDate() + 1);
+      }
+    });
+
+    res.json({ dailyTotals });
+  } catch (err) {
+    console.error("Availability Error:", err);
+    res.status(500).json({ error: 'Failed to fetch availability' });
+  }
+});
+
+// Remove MongoDB connection attempt since we are using file storage
+console.log('Using file-based storage for bookings.');
+
 
 app.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);
