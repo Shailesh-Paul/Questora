@@ -60,6 +60,73 @@ export const mapDbToActivity = (listing) => ({
   thumb2: listing.images?.[1] || listing.images?.[0] || 'https://images.unsplash.com/photo-1544627255-75e11a2f1ab6?w=300'
 });
 
+// ─── Gemini: AI Itinerary Generator ───────────────────────────────────────────
+const GEMINI_KEY = process.env.REACT_APP_GEMINI_API_KEY || "";
+
+export const generateItinerary = async (destination, members, budget, activities) => {
+  try {
+    const prompt = `As a luxury travel planner, create a detailed 3-day weekend itinerary for ${destination}. 
+Group size: ${members} people. Budget: ₹${budget}. 
+Must-do: ${activities.join(", ")}.
+Return JSON with: { overview, days: [{date, morning, afternoon, evening, hotel, estimatedCost}] }
+Keep it luxury, concise, executive-level.`;
+
+    const res = await axios.post(
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${GEMINI_KEY}`,
+      { contents: [{ parts: [{ text: prompt }] }] }
+    );
+    const text = res.data.candidates[0].content.parts[0].text;
+    const json = text.match(/\{[\s\S]*\}/)?.[0];
+    return json ? JSON.parse(json) : null;
+  } catch {
+    return null;
+  }
+};
+
+// ─── OpenAI: AI Insights ───────────────────────────────────────────────────────
+const OPENAI_KEY = process.env.REACT_APP_OPENAI_API_KEY || "";
+
+export const generateAIInsights = async (itemName, type, userProfile) => {
+  try {
+    const prompt = `As a luxury travel advisor, write a 2-sentence highly personalized pitch on why the ${type} "${itemName}" is a perfect fit for a group of ${userProfile.members} travelers visiting ${userProfile.destination} with a budget of ₹${userProfile.budget}. Make it sound exclusive and enticing.`;
+    
+    const res = await axios.post(
+      "https://api.openai.com/v1/chat/completions",
+      {
+        model: "gpt-3.5-turbo",
+        messages: [{ role: "user", content: prompt }],
+        max_tokens: 60,
+      },
+      {
+        headers: {
+          "Authorization": `Bearer ${OPENAI_KEY}`,
+          "Content-Type": "application/json"
+        }
+      }
+    );
+    return res.data.choices[0].message.content.trim();
+  } catch (error) {
+    console.error("OpenAI Error:", error);
+    return `An excellent choice for your stay in ${userProfile.destination}, offering great amenities and comfort tailored to your group.`;
+  }
+};
+
+// ─── Mock fallbacks (so UI never breaks without API keys) ────────────────────
+export const MOCK_HOTELS = [
+  // Hotels and Villas
+  { id: "h1", name: "Aloha on the Ganges", type: "hotel", stars: 5, price: 8500, currency: "INR", amenities: ["Pool", "Spa", "Yoga", "River View"], image: "https://images.unsplash.com/photo-1520250497591-112f2f40a3f4?w=600" },
+  { id: "h2", name: "The Glasshouse on the Ganges", type: "hotel", stars: 5, price: 12000, currency: "INR", amenities: ["Heritage", "Private Beach", "Butler", "Gourmet"], image: "https://images.unsplash.com/photo-1571896349842-33c89424de2d?w=600" },
+  { id: "v1", name: "Himalayan Sunrise Villa", type: "hotel", stars: 4, price: 15000, currency: "INR", amenities: ["Private Chef", "4 Bedrooms", "Mountain View", "Fireplace"], image: "https://images.unsplash.com/photo-1518780664697-55e3ad937233?w=600" },
+  
+  // Hostels and Dormitory
+  { id: "ho1", name: "Zostel Rishikesh", type: "hostel", stars: 4, price: 800, currency: "INR", amenities: ["Bunk Beds", "Cafe", "WiFi", "Social Events"], image: "https://images.unsplash.com/photo-1555854877-bab0e564b8d5?w=600" },
+  { id: "ho2", name: "The Hosteller", type: "hostel", stars: 4, price: 900, currency: "INR", amenities: ["AC Dorms", "Library", "Terrace", "Lockers"], image: "https://images.unsplash.com/photo-1596394516093-501ba68a0ba6?w=600" },
+
+  // Local Staying Homes
+  { id: "lh1", name: "Sharma Family Homestay", type: "home", stars: 5, price: 2500, currency: "INR", amenities: ["Home Cooked Meals", "Local Guide", "Garden", "Authentic"], image: "https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=600" },
+  { id: "lh2", name: "Riverside Cottage", type: "home", stars: 4, price: 3200, currency: "INR", amenities: ["Private Access", "Pet Friendly", "Kitchen", "Quiet"], image: "https://images.unsplash.com/photo-1499793983690-e29da59ef1c2?w=600" }
+];
+
 export const MOCK_ACTIVITIES = [
   { id: "a1", name: "White Water Rafting — Grade 4", duration: "3 hrs", price: 1200, category: "Extreme", rating: 4.8, slots: 20, image: "https://images.unsplash.com/photo-1530866495561-507c9faab2ed?w=800", shortDesc: "Navigate the thrilling rapids of the Ganges with expert guides. Experience the ultimate adrenaline rush amidst the breathtaking Himalayan foothills." },
   { id: "a2", name: "Bungee Jumping at Mohan Chatti", duration: "2 hrs", price: 3500, category: "Extreme", rating: 4.9, slots: 8, image: "https://images.unsplash.com/photo-1522044810620-3e28ce194ddc?w=800", shortDesc: "Take a leap of faith from India's highest bungee platform. Feel the wind rush past as you free-fall over the pristine valley." },
