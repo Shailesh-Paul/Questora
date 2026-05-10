@@ -45,6 +45,20 @@ function CustomCalendar({ dateRange, setDateRange, weather }) {
     return { temp, icon, statusText };
   };
 
+  const getAvailabilityForDay = (day) => {
+    if (isBefore(day, startOfDay(new Date()))) return null;
+    // Mock availability based on date
+    const seed = day.getDate() + day.getDay() * 2;
+    // Weekends (0, 6) get higher baseline
+    const isWeekend = day.getDay() === 0 || day.getDay() === 6;
+    let score = isWeekend ? 60 : 20;
+    score += (seed % 40); // 0 to 40 randomish addition
+    
+    if (score >= 80) return { status: 'red', text: 'Low Availability', colorClass: 'bg-red-500' };
+    if (score >= 50) return { status: 'yellow', text: 'Filling Fast', colorClass: 'bg-yellow-500' };
+    return { status: 'green', text: 'Available', colorClass: 'bg-emerald-500' };
+  };
+
   return (
     <div className="bg-white/90 border border-slate-200 rounded-2xl p-4 shadow-sm backdrop-blur-md">
       <div className="flex justify-between items-center mb-3 px-2">
@@ -67,25 +81,43 @@ function CustomCalendar({ dateRange, setDateRange, weather }) {
           const isCurrentMonth = isSameMonth(day, monthStart);
           
           const dayWeather = isCurrentMonth && !isPast ? getWeatherForDay(day) : null;
+          const availability = isCurrentMonth && !isPast ? getAvailabilityForDay(day) : null;
 
           return (
             <div 
               key={day.toString()}
               onClick={() => onDateClick(day)}
               className={`
-                min-h-[50px] p-1 border rounded-lg flex flex-col items-center justify-between cursor-pointer transition-all
+                min-h-[60px] p-1 border rounded-lg flex flex-col items-center justify-start cursor-pointer transition-all relative overflow-hidden
                 ${!isCurrentMonth ? 'opacity-20 pointer-events-none border-transparent' : 'border-slate-100'}
                 ${isPast ? 'opacity-40 pointer-events-none bg-slate-50 border-slate-200' : 'hover:border-orange-400 hover:shadow-sm'}
                 ${isSelected ? 'bg-orange-500 text-white border-orange-500 shadow-md transform scale-[1.02] z-10' : 'bg-white text-slate-700'}
                 ${isWithin && !isSelectedStart && !isSelectedEnd ? 'bg-orange-50 text-orange-900 border-orange-200 shadow-none transform-none' : ''}
               `}
             >
-              <span className={`text-sm font-bold ${isSelected && !isWithin ? 'text-white' : ''}`}>{format(day, "d")}</span>
-              {dayWeather && (
-                <div className={`text-center flex flex-col items-center mt-0.5 ${isSelected && !isWithin ? 'text-white' : 'text-slate-500'}`}>
-                  <span className={`text-[9px] font-bold leading-none ${isSelected && !isWithin ? 'text-orange-100' : 'text-slate-400'}`}>{dayWeather.temp}° {dayWeather.statusText}</span>
-                </div>
+              {availability && !isSelected && (
+                <div className={`absolute top-0 right-0 w-full h-1 ${availability.colorClass} opacity-80`}></div>
               )}
+              
+              <span className={`text-sm font-bold mt-1 ${isSelected && !isWithin ? 'text-white' : ''}`}>{format(day, "d")}</span>
+              
+              <div className="mt-auto w-full flex flex-col items-center gap-0.5 pb-0.5">
+                {dayWeather && (
+                  <span className={`text-[9px] font-bold leading-none ${isSelected && !isWithin ? 'text-orange-100' : 'text-slate-400'}`}>
+                    {dayWeather.temp}° {dayWeather.statusText}
+                  </span>
+                )}
+                {availability && (
+                  <span className={`text-[8px] font-bold leading-none px-1 py-0.5 rounded-sm uppercase tracking-wider
+                    ${isSelected && !isWithin ? 'bg-white/20 text-white' : 
+                      availability.status === 'red' ? 'bg-red-100 text-red-600' : 
+                      availability.status === 'yellow' ? 'bg-yellow-100 text-yellow-700' : 
+                      'bg-emerald-100 text-emerald-600'}
+                  `}>
+                    {availability.text}
+                  </span>
+                )}
+              </div>
             </div>
           );
         })}
