@@ -1,131 +1,196 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import useTripStore from "../store/tripStore";
-import { MOCK_HOTELS, MOCK_ACTIVITIES } from "../lib/api";
-import { ArrowLeft, Star, Clock, Users, ShoppingCart, Compass } from "lucide-react";
+import { MOCK_HOTELS, MOCK_ACTIVITIES, generateAIInsights } from "../lib/api";
+import { ArrowLeft, Star, Clock, Users, ExternalLink, CreditCard, Sparkles, X, CheckCircle, Wallet } from "lucide-react";
 import toast from "react-hot-toast";
 
 export default function ItineraryPage() {
   const navigate = useNavigate();
   const { destination: destId } = useParams();
-  const { destination, members, budget, selectedActivities, addToCart, cart } = useTripStore();
-  const nights = 2;
+  const { destination, members, budget, addToCart, removeFromCart, cart, selectedHotel, selectHotel, getRemainingBudget, autoSaveTrip, dateRange } = useTripStore();
+  const nightsLocal = dateRange.start && dateRange.end ? Math.max(1, Math.round((new Date(dateRange.end) - new Date(dateRange.start)) / (1000 * 60 * 60 * 24))) : 2;
+
+  const [activeCategory, setActiveCategory] = useState(null); // 'hotel', 'hostel', 'home'
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [activityFilter, setActivityFilter] = useState("All");
+  const [aiInsights, setAiInsights] = useState({});
 
   const inCart = (id) => cart.some((i) => i.id === id);
 
-  const handleAdd = (item) => {
-    addToCart(item);
-    toast.success(`${item.name} added to itinerary`);
+  const handleAddActivity = (item) => {
+    if (inCart(item.id)) {
+      removeFromCart(item.id);
+      toast.success(`${item.name} removed`);
+    } else {
+      addToCart({ ...item, type: "activity", price: item.price * members });
+      toast.success(`${item.name} added`);
+    }
+    autoSaveTrip();
   };
 
+  const openStayModal = (category) => {
+    setActiveCategory(category);
+    setIsModalOpen(true);
+  };
+
+  // Pre-fetch AI insights for hotels when modal opens
+  useEffect(() => {
+    if (isModalOpen && activeCategory) {
+      const hotels = MOCK_HOTELS.filter(h => h.type === activeCategory);
+      hotels.forEach(hotel => {
+        if (!aiInsights[hotel.id]) {
+          generateAIInsights(hotel.name, hotel.type, { destination: destination?.name, budget, members }).then(insight => {
+            setAiInsights(prev => ({ ...prev, [hotel.id]: insight }));
+          });
+        }
+      });
+    }
+  }, [isModalOpen, activeCategory, aiInsights, destination, budget, members]);
+
+  const filteredActivities = activityFilter === "All" 
+    ? MOCK_ACTIVITIES 
+    : MOCK_ACTIVITIES.filter(a => a.category === activityFilter);
+
+  const categories = ["All", ...Array.from(new Set(MOCK_ACTIVITIES.map(a => a.category)))];
+
+  const totalCost = cart.reduce((sum, i) => sum + i.price, 0) + (selectedHotel ? selectedHotel.price * nightsLocal : 0);
+  const remaining = getRemainingBudget();
+
   return (
-    <div style={{ background: "var(--obsidian)", minHeight: "100vh" }}>
-      {/* Nav */}
-      <div style={{ padding: "24px 48px", borderBottom: "1px solid var(--border)", display: "flex", alignItems: "center", justifyContent: "space-between", position: "sticky", top: 0, zIndex: 50, background: "rgba(10,10,11,0.95)", backdropFilter: "blur(20px)" }}>
-        <button onClick={() => navigate("/plan")} style={{ display: "flex", alignItems: "center", gap: 8, background: "none", border: "none", color: "var(--cream-dim)", cursor: "pointer", fontSize: 13, letterSpacing: 2, textTransform: "uppercase", fontFamily: "'DM Sans', sans-serif" }}>
+    <div className="min-h-screen relative font-body text-slate-100">
+      {/* Full Page Fixed Background */}
+      <div className="fixed inset-0 z-[-1]">
+        <img 
+          src={destination?.image || "https://images.unsplash.com/photo-1626621341517-bbf3d9990a23?w=1200"} 
+          alt="Destination Background" 
+          className="w-full h-full object-cover"
+        />
+        <div className="absolute inset-0 bg-slate-950/70 backdrop-blur-[2px]" />
+      </div>
+
+      {/* Header & Budget Tracker */}
+      <div className="sticky top-0 z-50 bg-slate-900/60 backdrop-blur-xl border-b border-white/10 px-6 py-4 flex items-center justify-between">
+        <button onClick={() => navigate("/plan")} className="flex items-center gap-2 text-white/70 hover:text-white transition-colors font-semibold text-sm">
           <ArrowLeft size={16} /> Back
         </button>
-        <span style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 18, letterSpacing: 3, color: "var(--cream)" }}>LUXE<span style={{ color: "var(--gold)" }}>TREK</span></span>
-        <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "10px 20px", border: "1px solid var(--gold)", color: "var(--gold)", fontSize: 13, cursor: "pointer" }} onClick={() => navigate("/booking")}>
-          <ShoppingCart size={14} /> {cart.length} items
-        </div>
-      </div>
-
-      {/* Hero */}
-      <div style={{ position: "relative", height: 400, overflow: "hidden" }}>
-        <img src={destination?.image || "https://images.unsplash.com/photo-1626621341517-bbf3d9990a23?w=1200"} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
-        <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to top, rgba(10,10,11,1) 0%, rgba(10,10,11,0.3) 60%, transparent 100%)" }} />
-        <div style={{ position: "absolute", bottom: 48, left: 48 }}>
-          <p style={{ fontSize: 11, letterSpacing: 6, color: "var(--gold)", textTransform: "uppercase", marginBottom: 8 }}>Your Curated Itinerary</p>
-          <h1 style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 64, fontWeight: 300, color: "var(--cream)", lineHeight: 1 }}>{destination?.name || "Rishikesh"}</h1>
-          <p style={{ fontSize: 14, color: "var(--cream-dim)", marginTop: 8 }}>{members} travelers · {nights} nights · ₹{budget?.toLocaleString("en-IN")} / person</p>
-        </div>
-      </div>
-
-      <div style={{ maxWidth: 1100, margin: "0 auto", padding: "60px 48px" }}>
-        {/* Hotels */}
-        <div style={{ marginBottom: 64 }}>
-          <p style={{ fontSize: 11, letterSpacing: 4, color: "var(--gold)", textTransform: "uppercase", marginBottom: 8 }}>Recommended Stays</p>
-          <h2 style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 36, color: "var(--cream)", marginBottom: 32, fontWeight: 300 }}>Select Your Hotel</h2>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(300px, 1fr))", gap: 20 }}>
-            {MOCK_HOTELS.map((hotel) => (
-              <div key={hotel.id} style={{ background: "var(--carbon)", border: `1px solid ${inCart(hotel.id) ? "var(--gold)" : "var(--border)"}`, overflow: "hidden", transition: "all 0.3s" }}>
-                <div style={{ height: 180, overflow: "hidden" }}>
-                  <img src={hotel.image} alt={hotel.name} style={{ width: "100%", height: "100%", objectFit: "cover", transition: "transform 0.4s" }} />
-                </div>
-                <div style={{ padding: "24px" }}>
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 8 }}>
-                    <h3 style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 20, color: "var(--cream)", fontWeight: 400 }}>{hotel.name}</h3>
-                    <div style={{ display: "flex", gap: 2 }}>
-                      {Array.from({ length: hotel.stars }).map((_, i) => <Star key={i} size={10} fill="var(--gold)" color="var(--gold)" />)}
-                    </div>
-                  </div>
-                  <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 16 }}>
-                    {hotel.amenities.map((a) => (
-                      <span key={a} style={{ fontSize: 10, color: "var(--cream-dim)", padding: "3px 10px", border: "1px solid var(--border)", letterSpacing: 1 }}>{a}</span>
-                    ))}
-                  </div>
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                    <div>
-                      <span style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 24, color: "var(--gold)" }}>₹{hotel.price.toLocaleString("en-IN")}</span>
-                      <span style={{ fontSize: 12, color: "var(--cream-dim)" }}> /night</span>
-                    </div>
-                    <button
-                      onClick={() => !inCart(hotel.id) && handleAdd({ ...hotel, type: "hotel", price: hotel.price * nights })}
-                      style={{
-                        padding: "8px 20px", border: `1px solid ${inCart(hotel.id) ? "var(--gold)" : "var(--border)"}`,
-                        background: inCart(hotel.id) ? "rgba(201,168,76,0.1)" : "transparent",
-                        color: inCart(hotel.id) ? "var(--gold)" : "var(--cream-dim)",
-                        fontSize: 12, cursor: "pointer", letterSpacing: 1, fontFamily: "'DM Sans', sans-serif",
-                      }}
-                    >
-                      {inCart(hotel.id) ? "✓ Added" : "Add"}
-                    </button>
-                  </div>
-                </div>
-              </div>
-            ))}
+        
+        {/* Interactive Budget Tracker */}
+        <div className="flex items-center gap-4 bg-slate-950/80 p-3 rounded-2xl border border-white/10 shadow-2xl">
+          <div className="flex items-center gap-3 pr-4 border-r border-white/10">
+            <div className="bg-orange-500/20 p-2 rounded-lg"><Wallet size={20} className="text-orange-400" /></div>
+            <div>
+              <p className="text-[10px] text-white/50 uppercase tracking-widest font-bold">Total Budget</p>
+              <p className="font-bold text-sm">₹{(budget * members).toLocaleString("en-IN")}</p>
+            </div>
+          </div>
+          <div className="px-2">
+            <p className="text-[10px] text-white/50 uppercase tracking-widest font-bold">Remaining</p>
+            <p className={`font-bold text-lg ${remaining < 0 ? 'text-red-400' : 'text-emerald-400'}`}>
+              ₹{remaining.toLocaleString("en-IN")}
+            </p>
           </div>
         </div>
+      </div>
 
-        {/* Activities */}
-        <div style={{ marginBottom: 64 }}>
-          <p style={{ fontSize: 11, letterSpacing: 4, color: "var(--gold)", textTransform: "uppercase", marginBottom: 8 }}>Experiences</p>
-          <h2 style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 36, color: "var(--cream)", marginBottom: 32, fontWeight: 300 }}>Activities & Adventures</h2>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: 16 }}>
-            {MOCK_ACTIVITIES.map((act) => (
-              <div key={act.id} style={{ background: "var(--carbon)", border: `1px solid ${inCart(act.id) ? "var(--gold)" : "var(--border)"}`, padding: "24px", transition: "all 0.3s" }}>
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 12 }}>
-                  <span style={{ fontSize: 10, letterSpacing: 2, color: "var(--sage)", textTransform: "uppercase", padding: "4px 10px", border: "1px solid rgba(122,158,126,0.3)" }}>{act.category}</span>
-                  <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
-                    <Star size={10} fill="var(--gold)" color="var(--gold)" />
-                    <span style={{ fontSize: 12, color: "var(--gold)" }}>{act.rating}</span>
+      <div className="max-w-6xl mx-auto px-6 py-12">
+        {/* Destination Name Overlay */}
+        <div className="mb-16 text-center">
+          <p className="text-orange-400 font-bold tracking-[0.3em] uppercase text-sm mb-4">Curated For You</p>
+          <h1 className="font-display font-bold text-6xl md:text-8xl text-white tracking-tight drop-shadow-2xl">
+            {destination?.name || "Destination"}
+          </h1>
+        </div>
+
+        {/* Stay Selection Section */}
+        <div className="mb-20">
+          <h2 className="font-display text-3xl font-bold mb-8 flex items-center gap-3">
+            <span className="w-8 h-[2px] bg-orange-500"></span> Select Your Stay
+          </h2>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div onClick={() => openStayModal("hotel")} className="group cursor-pointer bg-white/5 backdrop-blur-md border border-white/10 p-8 rounded-3xl hover:bg-white/10 hover:border-orange-500/50 transition-all text-center relative overflow-hidden">
+              <div className="absolute inset-0 bg-gradient-to-b from-orange-500/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+              <h3 className="text-2xl font-bold mb-2 relative z-10">Hotels & Villas</h3>
+              <p className="text-sm text-white/60 relative z-10">Premium luxury & comfort</p>
+            </div>
+            <div onClick={() => openStayModal("hostel")} className="group cursor-pointer bg-white/5 backdrop-blur-md border border-white/10 p-8 rounded-3xl hover:bg-white/10 hover:border-orange-500/50 transition-all text-center relative overflow-hidden">
+              <div className="absolute inset-0 bg-gradient-to-b from-blue-500/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+              <h3 className="text-2xl font-bold mb-2 relative z-10">Hostels & Dorms</h3>
+              <p className="text-sm text-white/60 relative z-10">Social, vibrant & budget-friendly</p>
+            </div>
+            <div onClick={() => openStayModal("home")} className="group cursor-pointer bg-white/5 backdrop-blur-md border border-white/10 p-8 rounded-3xl hover:bg-white/10 hover:border-orange-500/50 transition-all text-center relative overflow-hidden">
+              <div className="absolute inset-0 bg-gradient-to-b from-emerald-500/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+              <h3 className="text-2xl font-bold mb-2 relative z-10">Local Homes</h3>
+              <p className="text-sm text-white/60 relative z-10">Authentic local experiences</p>
+            </div>
+          </div>
+
+          {selectedHotel && (
+            <div className="mt-6 bg-orange-500/10 border border-orange-500/30 rounded-2xl p-6 flex items-center justify-between backdrop-blur-md">
+              <div className="flex items-center gap-4">
+                <img src={selectedHotel.image} alt={selectedHotel.name} className="w-16 h-16 rounded-xl object-cover" />
+                <div>
+                  <p className="text-orange-400 text-xs font-bold uppercase tracking-wider mb-1">Selected Stay</p>
+                  <h4 className="font-bold text-xl">{selectedHotel.name}</h4>
+                  <p className="text-white/60 text-sm">₹{(selectedHotel.price * nightsLocal).toLocaleString("en-IN")} total for {nightsLocal} nights</p>
+                </div>
+              </div>
+              <button onClick={() => openStayModal(selectedHotel.type)} className="px-4 py-2 bg-white/10 hover:bg-white/20 rounded-lg text-sm font-semibold transition-colors">
+                Change Stay
+              </button>
+            </div>
+          )}
+        </div>
+
+        {/* Activities Section */}
+        <div className="mb-20">
+          <h2 className="font-display text-3xl font-bold mb-8 flex items-center gap-3">
+            <span className="w-8 h-[2px] bg-orange-500"></span> Curated Activities
+          </h2>
+          
+          <div className="flex flex-wrap gap-2 mb-8">
+            {categories.map(cat => (
+              <button 
+                key={cat}
+                onClick={() => setActivityFilter(cat)}
+                className={`px-5 py-2 rounded-full text-sm font-semibold transition-all ${
+                  activityFilter === cat ? "bg-orange-500 text-white" : "bg-white/10 text-white/70 hover:bg-white/20"
+                }`}
+              >
+                {cat}
+              </button>
+            ))}
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {filteredActivities.map((act) => (
+              <div key={act.id} className="bg-slate-900/50 backdrop-blur-lg border border-white/10 rounded-3xl p-6 hover:border-white/30 transition-all flex flex-col justify-between">
+                <div>
+                  <div className="flex justify-between items-start mb-4">
+                    <span className="text-xs font-bold tracking-wider text-orange-400 uppercase bg-orange-400/10 px-3 py-1 rounded-full">{act.category}</span>
+                    <div className="flex items-center gap-1 text-yellow-400 text-sm font-bold">
+                      <Star size={14} className="fill-yellow-400" /> {act.rating}
+                    </div>
+                  </div>
+                  <h3 className="font-bold text-xl mb-3">{act.name}</h3>
+                  <div className="flex items-center gap-4 text-sm text-white/50 mb-6">
+                    <div className="flex items-center gap-1"><Clock size={14}/> {act.duration}</div>
+                    <div className="flex items-center gap-1"><Users size={14}/> {act.slots} slots</div>
                   </div>
                 </div>
-                <h3 style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 20, color: "var(--cream)", marginBottom: 8, fontWeight: 400 }}>{act.name}</h3>
-                <div style={{ display: "flex", gap: 16, marginBottom: 20 }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, color: "var(--cream-dim)" }}>
-                    <Clock size={12} /> {act.duration}
-                  </div>
-                  <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, color: "var(--cream-dim)" }}>
-                    <Users size={12} /> {act.slots} slots
-                  </div>
-                </div>
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                
+                <div className="flex items-center justify-between mt-auto pt-4 border-t border-white/10">
                   <div>
-                    <span style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 22, color: "var(--gold)" }}>₹{act.price.toLocaleString("en-IN")}</span>
-                    <span style={{ fontSize: 12, color: "var(--cream-dim)" }}> /person</span>
+                    <span className="text-xl font-bold">₹{act.price.toLocaleString("en-IN")}</span>
+                    <span className="text-xs text-white/50"> /pp</span>
                   </div>
                   <button
-                    onClick={() => !inCart(act.id) && handleAdd({ ...act, type: "activity", price: act.price * members })}
-                    style={{
-                      padding: "8px 20px", border: `1px solid ${inCart(act.id) ? "var(--gold)" : "var(--border)"}`,
-                      background: inCart(act.id) ? "rgba(201,168,76,0.1)" : "transparent",
-                      color: inCart(act.id) ? "var(--gold)" : "var(--cream-dim)",
-                      fontSize: 12, cursor: "pointer", fontFamily: "'DM Sans', sans-serif",
-                    }}
+                    onClick={() => handleAddActivity(act)}
+                    className={`px-5 py-2 rounded-xl text-sm font-bold transition-all ${
+                      inCart(act.id) ? "bg-emerald-500 text-white" : "bg-white text-slate-900 hover:bg-slate-200"
+                    }`}
                   >
-                    {inCart(act.id) ? "✓ Added" : "Book"}
+                    {inCart(act.id) ? "Added ✓" : "Add"}
                   </button>
                 </div>
               </div>
@@ -133,25 +198,101 @@ export default function ItineraryPage() {
           </div>
         </div>
 
-        {/* CTA */}
-        {cart.length > 0 && (
-          <div style={{ padding: "32px", background: "var(--carbon)", border: "1px solid var(--gold)", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-            <div>
-              <p style={{ fontSize: 12, color: "var(--cream-dim)", letterSpacing: 2, marginBottom: 4, textTransform: "uppercase" }}>Your selection</p>
-              <p style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 28, color: "var(--cream)" }}>
-                ₹{cart.reduce((s, i) => s + i.price, 0).toLocaleString("en-IN")} total
-                <span style={{ fontSize: 16, color: "var(--gold)", marginLeft: 12 }}>· ₹{Math.round(cart.reduce((s, i) => s + i.price, 0) / members).toLocaleString("en-IN")}/person</span>
-              </p>
-            </div>
-            <button
-              onClick={() => navigate("/booking")}
-              style={{ padding: "16px 40px", background: "var(--gold)", border: "none", color: "var(--obsidian)", fontFamily: "'DM Sans', sans-serif", fontSize: 13, letterSpacing: 2, textTransform: "uppercase", cursor: "pointer", fontWeight: 500 }}
-            >
-              Proceed to Booking
-            </button>
+        {/* Final Total & Booking Actions */}
+        <div className="bg-slate-900/80 backdrop-blur-2xl border border-white/10 rounded-3xl p-8 md:p-12 shadow-2xl flex flex-col md:flex-row justify-between items-center gap-8 relative overflow-hidden">
+          <div className="absolute top-0 right-0 w-64 h-64 bg-orange-500/20 rounded-full blur-[100px]" />
+          
+          <div className="relative z-10">
+            <p className="text-sm font-bold text-orange-400 tracking-widest uppercase mb-2">Final Summary</p>
+            <p className="font-display text-4xl md:text-5xl font-bold">₹{totalCost.toLocaleString("en-IN")}</p>
+            <p className="text-white/50 mt-2">Includes {nightsLocal} nights stay + {cart.length} activities</p>
           </div>
-        )}
+
+          <div className="flex flex-col sm:flex-row gap-4 relative z-10 w-full md:w-auto">
+            {cart.length > 0 && (
+              <button onClick={() => navigate("/booking")} className="flex items-center justify-center gap-2 px-8 py-4 bg-orange-500 hover:bg-orange-600 text-white font-bold rounded-2xl transition-all shadow-[0_0_20px_rgba(249,115,22,0.3)]">
+                <CreditCard size={20} /> Book Activities
+              </button>
+            )}
+            
+            {selectedHotel && (
+              <button onClick={() => window.open(`https://www.booking.com/searchresults.html?ss=${destination?.name}`, "_blank")} className="flex items-center justify-center gap-2 px-8 py-4 bg-white/10 hover:bg-white/20 border border-white/20 text-white font-bold rounded-2xl transition-all">
+                <ExternalLink size={20} /> Book Hotel Room
+              </button>
+            )}
+            
+            {!selectedHotel && cart.length === 0 && (
+              <div className="text-white/50 italic px-8 py-4">Add a stay or activity to proceed</div>
+            )}
+          </div>
+        </div>
       </div>
+
+      {/* Stay Selection Modal */}
+      {isModalOpen && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/80 backdrop-blur-sm p-4">
+          <div className="bg-slate-900 border border-white/10 rounded-3xl w-full max-w-4xl max-h-[85vh] flex flex-col overflow-hidden shadow-2xl animate-on-load">
+            <div className="p-6 border-b border-white/10 flex justify-between items-center bg-white/5">
+              <h3 className="text-2xl font-bold capitalize">Suggested {activeCategory}s</h3>
+              <button onClick={() => setIsModalOpen(false)} className="text-white/50 hover:text-white bg-white/5 p-2 rounded-full"><X size={20} /></button>
+            </div>
+            
+            <div className="overflow-y-auto p-6 space-y-6 flex-1 custom-scrollbar">
+              {MOCK_HOTELS.filter(h => h.type === activeCategory).map(hotel => (
+                <div key={hotel.id} className={`flex flex-col md:flex-row gap-6 p-4 rounded-2xl border transition-all ${selectedHotel?.id === hotel.id ? 'bg-orange-500/10 border-orange-500/50' : 'bg-white/5 border-white/10 hover:bg-white/10'}`}>
+                  <img src={hotel.image} alt={hotel.name} className="w-full md:w-48 h-48 rounded-xl object-cover" />
+                  
+                  <div className="flex-1 flex flex-col">
+                    <div className="flex justify-between items-start mb-2">
+                      <h4 className="text-xl font-bold">{hotel.name}</h4>
+                      <div className="flex gap-1">
+                        {Array.from({length: hotel.stars}).map((_, i) => <Star key={i} size={14} className="fill-yellow-400 text-yellow-400" />)}
+                      </div>
+                    </div>
+                    
+                    <div className="flex flex-wrap gap-2 mb-4">
+                      {hotel.amenities.map(a => <span key={a} className="text-[10px] px-2 py-1 border border-white/10 rounded text-white/60">{a}</span>)}
+                    </div>
+                    
+                    {aiInsights[hotel.id] && (
+                      <div className="bg-blue-500/10 border border-blue-500/20 rounded-xl p-3 mb-4 text-sm text-blue-200 flex gap-3 items-start">
+                        <Sparkles size={16} className="text-blue-400 flex-shrink-0 mt-0.5" />
+                        <p className="italic">{aiInsights[hotel.id]}</p>
+                      </div>
+                    )}
+                    
+                    <div className="mt-auto flex items-center justify-between border-t border-white/10 pt-4">
+                      <div>
+                        <span className="text-2xl font-bold text-orange-400">₹{hotel.price.toLocaleString("en-IN")}</span>
+                        <span className="text-xs text-white/50"> /night</span>
+                      </div>
+                      <button
+                        onClick={() => {
+                          selectHotel(hotel);
+                          toast.success(`${hotel.name} selected as your stay.`);
+                          setIsModalOpen(false);
+                          autoSaveTrip();
+                        }}
+                        className={`px-6 py-2.5 rounded-xl font-bold text-sm transition-all flex items-center gap-2 ${
+                          selectedHotel?.id === hotel.id ? "bg-orange-500 text-white" : "bg-white text-slate-900 hover:bg-slate-200"
+                        }`}
+                      >
+                        {selectedHotel?.id === hotel.id ? <><CheckCircle size={16} /> Selected</> : "Select Stay"}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+              
+              {MOCK_HOTELS.filter(h => h.type === activeCategory).length === 0 && (
+                <div className="text-center py-12 text-white/50">
+                  No {activeCategory}s currently available in this area.
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

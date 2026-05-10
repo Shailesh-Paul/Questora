@@ -1,8 +1,10 @@
 import React, { useState } from "react";
-import { Sun, Building2, Compass } from "lucide-react";
+import { Sun, Building2, Compass, Bike } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import ListingModal from "./ListingModal";
 
 export default function Navbar({ scrolled }) {
+  const navigate = useNavigate();
   const [isModalOpen, setIsModalOpen] = useState(false);
 
   return (
@@ -62,9 +64,12 @@ export default function Navbar({ scrolled }) {
           <div className="hidden md:flex items-center gap-3">
             {["Destinations", "Homestays", "Rentals", "Local Guides"].map(
               (item) => (
-                <a
+                <button
                   key={item}
-                  href={`#${item.toLowerCase().split(" ")[0]}`}
+                  onClick={() => {
+                    if (item === "Rentals") navigate("/rentals");
+                    else document.getElementById(item.toLowerCase().split(" ")[0])?.scrollIntoView({ behavior: "smooth" });
+                  }}
                   className="
                     relative px-5 py-2 rounded-full overflow-hidden
                     text-sm font-medium text-white/90
@@ -83,7 +88,7 @@ export default function Navbar({ scrolled }) {
                   <span className="absolute bottom-0 left-1/2 h-[2px] w-0 bg-orange-400 transition-all duration-500 group-hover:w-10 group-hover:left-[calc(50%-20px)]" />
 
                   <span className="relative z-10">{item}</span>
-                </a>
+                </button>
               )
             )}
           </div>

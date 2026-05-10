@@ -17,6 +17,7 @@ frontend/dist/
 .env.production.local
 backend/.env
 frontend/.env
+whatsapp-assistant/.env
 
 # IDEs and OS
 .vscode/

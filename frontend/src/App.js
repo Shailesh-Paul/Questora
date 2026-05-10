@@ -5,6 +5,10 @@ import { Toaster } from "react-hot-toast";
 import LandingPage from "./pages/LandingPage";
 import PlanPage from "./pages/PlanPage";
 import ItineraryPage from "./pages/ItineraryPage";
+import RentalsPage from "./pages/RentalsPage";
+import BookingPage from "./pages/BookingPage";
+import ScrollToTop from "./components/ScrollToTop";
+import TravelAssistantIcon from "./components/TravelAssistantIcon";
 import "./index.css";
 
 const queryClient = new QueryClient({
@@ -42,6 +46,8 @@ export default function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <BrowserRouter>
+        <ScrollToTop />
+        <TravelAssistantIcon />
         <div className="grain">
           <CustomCursor />
           <Toaster
@@ -58,7 +64,9 @@ export default function App() {
           <Routes>
             <Route path="/" element={<LandingPage />} />
             <Route path="/plan" element={<PlanPage />} />
+            <Route path="/rentals" element={<RentalsPage />} />
             <Route path="/itinerary/:destination" element={<ItineraryPage />} />
+            <Route path="/booking" element={<BookingPage />} />
           </Routes>
         </div>
       </BrowserRouter>
