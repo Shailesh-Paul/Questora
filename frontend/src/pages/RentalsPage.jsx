@@ -1,9 +1,247 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import useTripStore from "../store/tripStore";
-import { MOCK_RENTALS, fetchListings, mapDbToRental } from "../lib/api";
+import { fetchListings, mapDbToRental } from "../lib/api";
 import { ArrowLeft, Car, Bike, ShieldCheck, Zap, Info, Clock, AlertCircle } from "lucide-react";
 import Navbar from "../components/Navbar";
+
+// Move MOCK_RENTALS outside the component
+export const MOCK_RENTALS = [
+  // CARS
+  {
+    id: 1,
+    category: "cars",
+    name: "Mahindra Thar",
+    image: "https://images.unsplash.com/photo-1710225358761-4f5891df657d?q=80&w=764&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
+    pricePerHour: 499,
+    rushHourPrice: 699,
+    budgetTier: "PREMIUM TIER",
+    features: ["4x4", "SUV", "Adventure"],
+  },
+  {
+    id: 2,
+    category: "cars",
+    name: "BMW X5",
+    image: "https://images.unsplash.com/photo-1617531653635-4b0e357c091b?q=80&w=777&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
+    pricePerHour: 1299,
+    rushHourPrice: 1699,
+    budgetTier: "LUXURY TIER",
+    features: ["Luxury", "Automatic", "Premium"],
+  },
+  {
+    id: 3,
+    category: "cars",
+    name: "Hyundai Creta",
+    image: "https://images.unsplash.com/photo-1633359064754-804ba55e733f?w=600&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8N3x8aHl1bmRhaSUyMGNyZXRhfGVufDB8fDB8fHww",
+    pricePerHour: 349,
+    rushHourPrice: 499,
+    budgetTier: "ECONOMY TIER",
+    features: ["SUV", "Family", "Comfort"],
+  },
+  {
+    id: 4,
+    category: "cars",
+    name: "Toyota Fortuner",
+    image: "https://images.unsplash.com/photo-1670054953044-2605dbd0d747?q=80&w=1171&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
+    pricePerHour: 899,
+    rushHourPrice: 1199,
+    budgetTier: "PREMIUM TIER",
+    features: ["Offroad", "SUV", "Roadtrip"],
+  },
+  {
+    id: 5,
+    category: "cars",
+    name: "Mercedes C-Class",
+    image: "https://images.unsplash.com/photo-1610099610040-ab19f3a5ec35?q=80&w=764&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
+    pricePerHour: 1599,
+    rushHourPrice: 1999,
+    budgetTier: "LUXURY TIER",
+    features: ["Luxury", "Sedan", "Automatic"],
+  },
+  {
+    id: 6,
+    category: "cars",
+    name: "Maruti Swift",
+    image: "https://images.unsplash.com/photo-1663852408695-f57f4d75a536?q=80&w=627&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
+    pricePerHour: 199,
+    rushHourPrice: 299,
+    budgetTier: "ECONOMY TIER",
+    features: ["Budget", "Fuel Efficient", "City"],
+  },
+  {
+    id: 7,
+    category: "cars",
+    name: "Range Rover Velar",
+    image: "https://images.unsplash.com/photo-1519641471654-76ce0107ad1b?q=80&w=2000&auto=format&fit=crop",
+    pricePerHour: 1999,
+    rushHourPrice: 2599,
+    budgetTier: "LUXURY TIER",
+    features: ["Luxury", "SUV", "Premium"],
+  },
+  {
+    id: 8,
+    category: "cars",
+    name: "Kia Seltos",
+    image: "https://images.unsplash.com/photo-1619767886558-efdc259cde1a?q=80&w=2000&auto=format&fit=crop",
+    pricePerHour: 399,
+    rushHourPrice: 599,
+    budgetTier: "PREMIUM TIER",
+    features: ["SUV", "Family", "Travel"],
+  },
+  {
+    id: 9,
+    category: "cars",
+    name: "Audi Q7",
+    image: "https://images.unsplash.com/photo-1606152421802-db97b9c7a11b?q=80&w=1174&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
+    pricePerHour: 1899,
+    rushHourPrice: 2399,
+    budgetTier: "LUXURY TIER",
+    features: ["Luxury", "Premium", "Roadtrip"],
+  },
+  {
+    id: 10,
+    category: "cars",
+    name: "Honda City",
+    image: "https://images.unsplash.com/photo-1503736334956-4c8f8e92946d?q=80&w=2000&auto=format&fit=crop",
+    pricePerHour: 299,
+    rushHourPrice: 449,
+    budgetTier: "ECONOMY TIER",
+    features: ["Sedan", "Comfort", "City"],
+  },
+  // BIKES
+  {
+    id: 11,
+    category: "bikes",
+    name: "Royal Enfield Classic 350",
+    image: "https://images.unsplash.com/photo-1558981806-ec527fa84c39?q=80&w=2000&auto=format&fit=crop",
+    pricePerHour: 199,
+    rushHourPrice: 299,
+    budgetTier: "PREMIUM TIER",
+    features: ["Cruiser", "Touring", "Classic"],
+  },
+  {
+    id: 12,
+    category: "bikes",
+    name: "KTM Duke 390",
+    image: "https://images.unsplash.com/photo-1609630875171-b1321377ee65?q=80&w=2000&auto=format&fit=crop",
+    pricePerHour: 249,
+    rushHourPrice: 349,
+    budgetTier: "PREMIUM TIER",
+    features: ["Sports", "Fast", "Adventure"],
+  },
+  {
+    id: 13,
+    category: "bikes",
+    name: "Yamaha R15",
+    image: "https://images.unsplash.com/photo-1615172282427-9a57ef2d142e?q=80&w=2000&auto=format&fit=crop",
+    pricePerHour: 179,
+    rushHourPrice: 249,
+    budgetTier: "ECONOMY TIER",
+    features: ["Sports", "Mileage", "Stylish"],
+  },
+  {
+    id: 14,
+    category: "bikes",
+    name: "BMW GS 1250",
+    image: "https://images.unsplash.com/photo-1558981285-6f0c94958bb6?q=80&w=2000&auto=format&fit=crop",
+    pricePerHour: 699,
+    rushHourPrice: 899,
+    budgetTier: "LUXURY TIER",
+    features: ["Adventure", "Touring", "Premium"],
+  },
+  {
+    id: 15,
+    category: "bikes",
+    name: "Royal Enfield Himalayan",
+    image: "https://images.unsplash.com/photo-1529429617124-aee711a5ac1c?q=80&w=2000&auto=format&fit=crop",
+    pricePerHour: 229,
+    rushHourPrice: 329,
+    budgetTier: "PREMIUM TIER",
+    features: ["Adventure", "Mountain", "Touring"],
+  },
+  // SCOOTY
+  {
+    id: 21,
+    category: "scooty",
+    name: "Honda Activa 6G",
+    image: "https://images.unsplash.com/photo-1594142429108-596289ff97ea?q=80&w=2000&auto=format&fit=crop",
+    pricePerHour: 99,
+    rushHourPrice: 149,
+    budgetTier: "ECONOMY TIER",
+    features: ["Automatic", "City Ride", "Mileage"],
+  },
+  {
+    id: 22,
+    category: "scooty",
+    name: "TVS Ntorq",
+    image: "https://images.unsplash.com/photo-1611242320536-f12d3541249b?q=80&w=2000&auto=format&fit=crop",
+    pricePerHour: 129,
+    rushHourPrice: 179,
+    budgetTier: "PREMIUM TIER",
+    features: ["Sporty", "Bluetooth", "Fast"],
+  },
+  {
+    id: 23,
+    category: "scooty",
+    name: "Suzuki Access",
+    image: "https://images.unsplash.com/photo-1568772585407-9363f9bf3a87?q=80&w=2000&auto=format&fit=crop",
+    pricePerHour: 109,
+    rushHourPrice: 159,
+    budgetTier: "ECONOMY TIER",
+    features: ["Comfort", "Mileage", "Automatic"],
+  },
+  {
+    id: 24,
+    category: "scooty",
+    name: "Ather 450X",
+    image: "https://images.unsplash.com/photo-1620610531393-271505c87332?q=80&w=2000&auto=format&fit=crop",
+    pricePerHour: 199,
+    rushHourPrice: 279,
+    budgetTier: "PREMIUM TIER",
+    features: ["Electric", "Smart", "Premium"],
+  },
+  // CYCLES
+  {
+    id: 31,
+    category: "cycles",
+    name: "Mountain Explorer",
+    image: "https://images.unsplash.com/photo-1511994298241-608e28f14fde?q=80&w=2000&auto=format&fit=crop",
+    pricePerHour: 49,
+    rushHourPrice: 79,
+    budgetTier: "ECONOMY TIER",
+    features: ["Mountain", "Adventure", "Lightweight"],
+  },
+  {
+    id: 32,
+    category: "cycles",
+    name: "Urban Rider",
+    image: "https://images.unsplash.com/photo-1507035895480-2b3156c31fc8?q=80&w=2000&auto=format&fit=crop",
+    pricePerHour: 39,
+    rushHourPrice: 59,
+    budgetTier: "ECONOMY TIER",
+    features: ["City", "Comfort", "Daily"],
+  },
+  {
+    id: 33,
+    category: "cycles",
+    name: "Roadster Pro",
+    image: "https://images.unsplash.com/photo-1485965120184-e220f721d03e?q=80&w=2000&auto=format&fit=crop",
+    pricePerHour: 69,
+    rushHourPrice: 99,
+    budgetTier: "PREMIUM TIER",
+    features: ["Roadbike", "Fast", "Fitness"],
+  },
+  {
+    id: 34,
+    category: "cycles",
+    name: "Electric Cycle X",
+    image: "https://images.unsplash.com/photo-1571068316344-75bc76f77890?q=80&w=2000&auto=format&fit=crop",
+    pricePerHour: 129,
+    rushHourPrice: 179,
+    budgetTier: "PREMIUM TIER",
+    features: ["Electric", "Modern", "Smart"],
+  },
+];
 
 export default function RentalsPage() {
   const navigate = useNavigate();
@@ -12,6 +250,13 @@ export default function RentalsPage() {
   const [scrolled, setScrolled] = useState(false);
   const [dbRentals, setDbRentals] = useState([]);
   const [loading, setLoading] = useState(true);
+
+  const categories = [
+    { id: "cars", name: "Cars", icon: <Car size={20} /> },
+    { id: "bikes", name: "Bikes", icon: <Bike size={20} /> },
+    { id: "scooty", name: "Scooty", icon: <Zap size={20} /> },
+    { id: "cycles", name: "Cycles", icon: <Info size={20} /> },
+  ];
 
   useEffect(() => {
     const handleScroll = () => setScrolled(window.scrollY > 50);
@@ -56,13 +301,6 @@ export default function RentalsPage() {
   // Recommend vehicles based on user budget tier
   const recommendedVehicles = filteredRentals.filter(r => r.budgetTier === userTier);
   const otherVehicles = filteredRentals.filter(r => r.budgetTier !== userTier);
-
-  const categories = [
-    { id: "cars", name: "Cars", icon: <Car size={20} /> },
-    { id: "bikes", name: "Bikes", icon: <Bike size={20} /> },
-    { id: "scooty", name: "Scooty", icon: <Zap size={20} /> },
-    { id: "cycles", name: "Cycles", icon: <Info size={20} /> },
-  ];
 
   return (
     <div className="min-h-screen bg-[#050816] text-white font-body">

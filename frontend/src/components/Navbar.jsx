@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
-import { Sun, Building2, Compass } from "lucide-react";
+import { Sun, Building2, Compass, LogOut } from "lucide-react";
 import ListingModal from "./ListingModal";
 
 export default function Navbar({ scrolled }) {
@@ -173,6 +173,36 @@ export default function Navbar({ scrolled }) {
 
               <span className="relative z-10">Plan Weekend</span>
             </button>
+
+            {/* Logout Button (Conditional) */}
+            {localStorage.getItem("user") && (
+              <button
+                onClick={() => {
+                  localStorage.removeItem("user");
+                  useTripStore.getState().setPaid(false);
+                  useTripStore.getState().reset();
+                  navigate("/login");
+                }}
+                className="
+                  group relative overflow-hidden
+                  flex items-center gap-2
+                  font-semibold text-sm
+                  px-4 py-3 rounded-full
+                  border border-red-500/20
+                  text-red-400
+                  backdrop-blur-xl
+                  bg-red-500/5
+                  transition-all duration-500
+                  hover:bg-red-500/10
+                  hover:border-red-500/40
+                  hover:shadow-[0_0_30px_rgba(239,68,68,0.15)]
+                  hover:scale-105
+                "
+                title="Logout"
+              >
+                <LogOut size={16} className="relative z-10" />
+              </button>
+            )}
           </div>
         </div>
       </nav>

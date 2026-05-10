@@ -21,6 +21,7 @@ app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // 4. API Routes
 app.use('/api/listings', require('./routes/listingRoutes'));
+app.use('/api/auth', require('./routes/authRoutes'));
 const Booking = require('./models/Booking');
 
 // 5. Health Check & Root Route
@@ -89,26 +90,25 @@ async function saveBookings(bookings) {
 
 app.post('/api/bookings', async (req, res) => {
   try {
-    const { items, destinationId, startDate, endDate, quantity } = req.body;
+    const { items, destinationId, startDate, endDate, quantity, userPhoneNumber } = req.body;
     
-    if (!items || !destinationId || !startDate || !endDate) {
+    if (!items || !destinationId || !startDate || !endDate || !userPhoneNumber) {
       return res.status(400).json({ error: 'Missing required fields' });
     }
 
-    const bookings = await loadBookings();
+    const bookingPromises = items.map(item => {
+      return new Booking({
+        itemId: item.id || item._id,
+        type: item.type || 'activity',
+        destinationId,
+        startDate: new Date(startDate),
+        endDate: new Date(endDate),
+        quantityBooked: quantity || 1,
+        userPhoneNumber
+      }).save();
+    });
     
-    const newBookings = items.map(item => ({
-      id: Date.now().toString() + Math.random().toString(36).substr(2, 5),
-      itemId: item.id,
-      type: item.type || 'activity',
-      destinationId,
-      startDate: new Date(startDate).toISOString(),
-      endDate: new Date(endDate).toISOString(),
-      quantityBooked: quantity || 1
-    }));
-    
-    bookings.push(...newBookings);
-    await saveBookings(bookings);
+    await Promise.all(bookingPromises);
     
     res.status(201).json({ message: 'Bookings successful' });
   } catch (err) {

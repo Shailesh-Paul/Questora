@@ -3,16 +3,29 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "react-hot-toast";
 import LandingPage from "./pages/LandingPage";
+import LoginPage from "./pages/LoginPage";
 import PlanPage from "./pages/PlanPage";
 import ItineraryPage from "./pages/ItineraryPage";
 import RentalsPage from "./pages/RentalsPage";
 import BookingPage from "./pages/BookingPage";
 import ScrollToTop from "./components/ScrollToTop";
+import TravelAssistanceIcon from "./components/TravelAssistanceIcon";
+import WhatsAppAI from "./components/WhatsAppAI";
+import useTripStore from "./store/tripStore";
+import { Navigate } from "react-router-dom";
 import "./index.css";
 
 const queryClient = new QueryClient({
   defaultOptions: { queries: { staleTime: 5 * 60 * 1000, retry: 1 } },
 });
+
+const ProtectedRoute = ({ children }) => {
+  const user = localStorage.getItem("user");
+  if (!user) {
+    return <Navigate to="/login" replace />;
+  }
+  return children;
+};
 
 function CustomCursor() {
   const cursorRef = useRef(null);
@@ -42,6 +55,8 @@ function CustomCursor() {
 }
 
 export default function App() {
+  const isPaid = useTripStore((state) => state.isPaid);
+
   return (
     <QueryClientProvider client={queryClient}>
       <BrowserRouter>
@@ -60,12 +75,14 @@ export default function App() {
             }}
           />
           <Routes>
-            <Route path="/" element={<LandingPage />} />
-            <Route path="/plan" element={<PlanPage />} />
-            <Route path="/itinerary/:destination" element={<ItineraryPage />} />
-            <Route path="/rentals" element={<RentalsPage />} />
-            <Route path="/booking" element={<BookingPage />} />
+            <Route path="/login" element={<LoginPage />} />
+            <Route path="/" element={<ProtectedRoute><LandingPage /></ProtectedRoute>} />
+            <Route path="/plan" element={<ProtectedRoute><PlanPage /></ProtectedRoute>} />
+            <Route path="/itinerary/:destination" element={<ProtectedRoute><ItineraryPage /></ProtectedRoute>} />
+            <Route path="/rentals" element={<ProtectedRoute><RentalsPage /></ProtectedRoute>} />
+            <Route path="/booking" element={<ProtectedRoute><BookingPage /></ProtectedRoute>} />
           </Routes>
+          {isPaid && <WhatsAppAI />}
         </div>
       </BrowserRouter>
     </QueryClientProvider>

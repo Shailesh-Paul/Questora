@@ -34,13 +34,20 @@ class TwilioService {
   }
 
   async sendWelcomeMessage(to, tripDetails) {
+    const activitiesList = tripDetails.trip_data?.activities?.length > 0
+      ? tripDetails.trip_data.activities.map(a => `• ${a.name}`).join('\n')
+      : 'No activities selected yet.';
+
     const message = `🏖️ *Welcome to ${tripDetails.destination}!*
 
 Hey! Your trip is all set. Here's your quick summary:
-📍 *Hotel:* ${tripDetails.hotel.name}
+📍 *Hotel:* ${tripDetails.hotel?.name || 'Hotel'}
 📅 *Check-in:* ${new Date(tripDetails.check_in_date).toLocaleDateString('en-IN')}
 📅 *Check-out:* ${new Date(tripDetails.check_out_date).toLocaleDateString('en-IN')}
 💰 *Budget:* ₹${tripDetails.budget.total_initial.toLocaleString('en-IN')}
+
+🎟️ *Your Activities:*
+${activitiesList}
 
 I'm your travel assistant! Ask me anything - food, directions, weather, or budget check. 🚀`;
 

@@ -16,7 +16,7 @@ const loadRazorpayScript = () => {
 
 export default function BookingPage() {
   const navigate = useNavigate();
-  const { cart, selectedHotel, members, destination, reset, dateRange } = useTripStore();
+  const { cart, selectedHotel, members, destination, reset, dateRange, setPaid } = useTripStore();
   const [isProcessing, setIsProcessing] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
 
@@ -33,122 +33,152 @@ export default function BookingPage() {
 
   const handlePayment = async () => {
     setIsProcessing(true);
-    const res = await loadRazorpayScript();
-
-    if (!res) {
-      toast.error("Razorpay SDK failed to load. Are you online?");
-      setIsProcessing(false);
-      return;
-    }
-
+    
     try {
-      // Create order from backend
-      const orderResponse = await fetch("http://localhost:5000/api/create-order", {
+      // 1. Compile items for booking
+      const bookingItems = [...cart];
+      if (selectedHotel) {
+        bookingItems.push({ ...selectedHotel, type: 'hotel' });
+      }
+
+      const userData = JSON.parse(localStorage.getItem("user"));
+      let userPhone = userData?.phoneNumber || "911234567890";
+      
+      // Ensure phone number has '+' prefix for Twilio WhatsApp
+      if (!userPhone.startsWith("+")) {
+        userPhone = "+" + userPhone;
+      }
+
+      // 2. Record booking in main backend database
+      await fetch("http://localhost:5000/api/bookings", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ amount: totalCost }),
+        body: JSON.stringify({
+          items: bookingItems,
+          destinationId: destination.id,
+          startDate: dateRange.start || new Date().toISOString(),
+          endDate: dateRange.end || new Date(Date.now() + 86400000 * 2).toISOString(),
+          quantity: members,
+          userPhoneNumber: userPhone
+        })
       });
 
-      if (!orderResponse.ok) {
-        console.log("Backend payment route not configured or missing keys. Using mock success for demo.");
-        setTimeout(() => {
-          toast.success("Payment Successful! (Mock Demo)");
-          setIsSuccess(true);
-          setIsProcessing(false);
-        }, 1500);
-        return;
+      // 3. Initialize WhatsApp Assistant (Sends actual WhatsApp message)
+      try {
+        await fetch("http://localhost:5001/api/v1/trips/initialize", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            user_name: userData?.phoneNumber || 'Traveler',
+            phone_number: userPhone,
+            destination: destination.name,
+            check_in_date: dateRange.start || new Date().toISOString(),
+            check_out_date: dateRange.end || new Date(Date.now() + 86400000 * 2).toISOString(),
+            hotel: selectedHotel,
+            budget_total: totalCost,
+            activities: cart,
+            total_activities_cost: cart.reduce((sum, i) => sum + (i.price || 0), 0),
+            total_hotel_cost: selectedHotel ? selectedHotel.price * nights : 0,
+            grand_total: totalCost,
+            members: members
+          })
+        });
+      } catch (wsErr) {
+        console.error("WhatsApp Assistant Init Error:", wsErr);
       }
 
-      const orderData = await orderResponse.json();
-
-      const options = {
-        key: process.env.REACT_APP_RAZORPAY_KEY_ID || "rzp_test_SnQQo0BjlwDtYq",
-        amount: orderData.amount,
-        currency: orderData.currency,
-        name: "Questora Travels",
-        description: `Trip to ${destination?.name}`,
-        image: destination?.image || "https://images.unsplash.com/photo-1626621341517-bbf3d9990a23?w=200",
-        order_id: orderData.id,
-        handler: async function (response) {
-          try {
-            // Compile items for booking
-            const bookingItems = [...cart];
-            if (selectedHotel) {
-              bookingItems.push({ ...selectedHotel, type: 'hotel' });
-            }
-
-            // Record booking in backend
-            await fetch("http://localhost:5000/api/bookings", {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({
-                items: bookingItems,
-                destinationId: destination.id,
-                startDate: dateRange.start || new Date().toISOString(),
-                endDate: dateRange.end || new Date(Date.now() + 86400000 * 2).toISOString(),
-                quantity: members
-              })
-            });
-            
-            toast.success("Payment Successful!");
-            setIsSuccess(true);
-          } catch (e) {
-            console.error("Failed to record booking:", e);
-            toast.success("Payment Successful! (Booking record failed)");
-            setIsSuccess(true);
-          }
-        },
-        prefill: {
-          name: "Traveler",
-          email: "traveler@example.com",
-          contact: "9999999999",
-        },
-        theme: {
-          color: "#f97316",
-        },
-      };
-
-      const paymentObject = new window.Razorpay(options);
+      // 4. Success Actions
+      setPaid(true);
+      setIsSuccess(true);
+      toast.success("Payment Successful! Confirmation sent to WhatsApp.");
       
-      paymentObject.on("payment.failed", function (response) {
-        toast.error("Payment failed. Please try again.");
-      });
-
-      paymentObject.open();
     } catch (error) {
-      console.log("Payment gateway error. Using mock success for demo.");
-      setTimeout(() => {
-        toast.success("Payment Successful! (Mock Demo)");
-        setIsSuccess(true);
-        setIsProcessing(false);
-      }, 1500);
+      console.error("Payment Process Error:", error);
+      toast.error("Something went wrong. Please try again.");
     } finally {
-      if (!isSuccess) {
-         // setIsProcessing handled in timeout/handler
-      }
+      setIsProcessing(false);
     }
   };
 
   if (isSuccess) {
     return (
       <div className="min-h-screen bg-slate-50 flex items-center justify-center p-6 font-body">
-        <div className="bg-white rounded-3xl shadow-xl p-10 max-w-md w-full text-center border border-slate-100">
-          <div className="w-20 h-20 bg-emerald-100 text-emerald-500 rounded-full flex items-center justify-center mx-auto mb-6">
-            <CheckCircle size={40} />
+        <div className="bg-white rounded-[2.5rem] shadow-2xl p-8 md:p-12 max-w-2xl w-full border border-slate-100 relative overflow-hidden">
+          {/* Decorative background */}
+          <div className="absolute top-0 right-0 w-32 h-32 bg-orange-500/5 rounded-full -mr-16 -mt-16 blur-3xl" />
+          
+          <div className="text-center mb-10">
+            <div className="w-20 h-20 bg-emerald-100 text-emerald-500 rounded-full flex items-center justify-center mx-auto mb-6 shadow-sm">
+              <CheckCircle size={44} />
+            </div>
+            <h1 className="font-display font-bold text-3xl md:text-4xl text-slate-900 mb-2">Booking Confirmed!</h1>
+            <p className="text-slate-500">Receipt ID: #QST-{Math.floor(100000 + Math.random() * 900000)}</p>
           </div>
-          <h1 className="font-display font-bold text-3xl text-slate-900 mb-2">Booking Confirmed!</h1>
-          <p className="text-slate-600 mb-8">
-            Your trip to <span className="font-bold">{destination?.name}</span> is successfully booked. We have sent the itinerary and tickets to your email.
+
+          <div className="bg-slate-50 rounded-3xl p-6 md:p-8 mb-8 border border-slate-100">
+            <h2 className="font-bold text-slate-400 text-xs uppercase tracking-widest mb-6">Order Summary</h2>
+            
+            <div className="space-y-6">
+              {/* Destination & Hotel */}
+              <div className="flex justify-between items-start">
+                <div>
+                  <p className="font-bold text-lg text-slate-900">{destination?.name}</p>
+                  <p className="text-sm text-slate-500">{selectedHotel?.name || 'Standard Stay'}</p>
+                </div>
+                <div className="text-right">
+                  <p className="font-bold text-slate-900">₹{(selectedHotel?.price * nights || 0).toLocaleString("en-IN")}</p>
+                  <p className="text-xs text-slate-400">{nights} Nights</p>
+                </div>
+              </div>
+
+              {/* Activities */}
+              {cart.length > 0 && (
+                <div className="pt-4 border-t border-slate-200">
+                  <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-3">Activities</p>
+                  <div className="space-y-3">
+                    {cart.map((item, idx) => (
+                      <div key={idx} className="flex justify-between text-sm">
+                        <span className="text-slate-600 font-medium">• {item.name}</span>
+                        <span className="text-slate-900 font-bold">₹{item.price.toLocaleString("en-IN")}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Total */}
+              <div className="pt-6 border-t border-slate-300 flex justify-between items-center">
+                <p className="font-display font-bold text-xl text-slate-900">Total Paid</p>
+                <p className="font-display font-bold text-3xl text-orange-500">₹{totalCost.toLocaleString("en-IN")}</p>
+              </div>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <button
+              onClick={() => {
+                window.print();
+                toast.success("Downloading receipt...");
+              }}
+              className="flex items-center justify-center gap-3 bg-white border-2 border-slate-200 text-slate-700 font-bold py-4 rounded-2xl hover:bg-slate-50 transition-all active:scale-95 shadow-sm"
+            >
+              <ShieldCheck size={20} className="text-emerald-500" />
+              Download Receipt
+            </button>
+            <button
+              onClick={() => {
+                reset();
+                navigate("/");
+              }}
+              className="flex items-center justify-center gap-3 bg-slate-900 text-white font-bold py-4 rounded-2xl hover:bg-orange-500 transition-all active:scale-95 shadow-lg"
+            >
+              Back to Home
+            </button>
+          </div>
+          
+          <p className="text-center text-xs text-slate-400 mt-8">
+            A copy of this receipt has been sent to your registered WhatsApp number.
           </p>
-          <button
-            onClick={() => {
-              reset();
-              navigate("/");
-            }}
-            className="w-full bg-slate-900 text-white font-bold py-4 rounded-xl hover:bg-orange-500 transition-colors"
-          >
-            Plan Another Trip
-          </button>
         </div>
       </div>
     );

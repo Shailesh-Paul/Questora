@@ -68,6 +68,10 @@ const useTripStore = create(
         return totalBudget - get().getTotalCost();
       },
 
+      // Payment state
+      isPaid: false,
+      setPaid: (val) => set({ isPaid: val }),
+
       // Reset
       reset: () =>
         set({
