@@ -40,6 +40,7 @@ export default function BookingPage() {
     }
 
     try {
+      // Create order from backend
       const orderResponse = await fetch("http://localhost:5000/api/create-order", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -59,7 +60,7 @@ export default function BookingPage() {
       const orderData = await orderResponse.json();
 
       const options = {
-        key: "rzp_test_SnQQo0BjlwDtYq",
+        key: process.env.REACT_APP_RAZORPAY_KEY_ID || "rzp_test_SnQQo0BjlwDtYq",
         amount: orderData.amount,
         currency: orderData.currency,
         name: "Questora Travels",
@@ -96,8 +97,7 @@ export default function BookingPage() {
       }, 1500);
     } finally {
       if (!isSuccess) {
-        // Only set false here if we didn't mock it
-        // setIsProcessing is handled in the mock timeout
+         // setIsProcessing handled in timeout/handler
       }
     }
   };

@@ -5,7 +5,6 @@ import { DESTINATIONS } from "../lib/api";
 export default function DestinationGrid({ onSelect }) {
   const [searchQuery, setSearchQuery] = useState("");
   const [showDropdown, setShowDropdown] = useState(false);
-
   const [activeIndex, setActiveIndex] = useState(-1);
 
   const filteredDestinations = DESTINATIONS.filter(d => 
@@ -134,7 +133,6 @@ export default function DestinationGrid({ onSelect }) {
             </p>
           </div>
 
-          {/* Search Bar from YashNN branch, styled for cinematic look */}
           <div className="w-full lg:w-[400px] relative">
             <div className="flex items-center bg-white/10 backdrop-blur-2xl rounded-2xl border border-white/10 p-2 hover:border-white/20 transition-all shadow-2xl">
               <div className="pl-4 pr-2 text-orange-400">
@@ -201,158 +199,36 @@ export default function DestinationGrid({ onSelect }) {
           </div>
         </div>
 
-        {/* GRID */}
-        <div
-          className="
-            grid
-            grid-cols-1
-            md:grid-cols-2
-            xl:grid-cols-3
-            gap-7
-          "
-        >
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-7">
           {DESTINATIONS.map((dest) => {
             const crowd = getCrowdStyles(dest.crowdLevel);
-
             return (
               <div
                 key={dest.id}
                 onClick={() => onSelect(dest)}
-                className="
-                  group
-                  relative
-                  overflow-hidden
-                  rounded-[2rem]
-                  border border-white/10
-                  bg-black/30
-                  backdrop-blur-2xl
-                  cursor-pointer
-                  transition-all duration-700
-                  hover:-translate-y-2
-                  hover:border-white/20
-                  hover:bg-black/40
-                  hover:shadow-[0_25px_80px_rgba(0,0,0,0.45)]
-                "
+                className="group relative overflow-hidden rounded-[2rem] border border-white/10 bg-black/30 backdrop-blur-2xl cursor-pointer transition-all duration-700 hover:-translate-y-2 hover:border-white/20 hover:bg-black/40 hover:shadow-[0_25px_80px_rgba(0,0,0,0.45)]"
               >
-                {/* IMAGE SECTION */}
                 <div className="relative overflow-hidden aspect-[4/3]">
-
-                  {/* IMAGE */}
-                  <img
-                    src={dest.image}
-                    alt={dest.name}
-                    className="
-                      w-full
-                      h-full
-                      object-cover
-                      transition-transform duration-[2000ms]
-                      group-hover:scale-105
-                    "
-                  />
-
-                  {/* IMAGE OVERLAY */}
+                  <img src={dest.image} alt={dest.name} className="w-full h-full object-cover transition-transform duration-[2000ms] group-hover:scale-105" />
                   <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/10 to-transparent" />
-
-                  {/* CROWD BADGE */}
-                  <div
-                    className={`
-                      absolute top-5 right-5
-                      flex items-center gap-2
-                      px-4 py-2
-                      rounded-full
-                      border
-                      backdrop-blur-xl
-                      text-xs font-semibold
-                      ${crowd.badge}
-                    `}
-                  >
-                    <span
-                      className={`w-2 h-2 rounded-full ${crowd.dot}`}
-                    />
-
+                  <div className={`absolute top-5 right-5 flex items-center gap-2 px-4 py-2 rounded-full border backdrop-blur-xl text-xs font-semibold ${crowd.badge}`}>
+                    <span className={`w-2 h-2 rounded-full ${crowd.dot}`} />
                     {crowd.text}
                   </div>
-
-                  {/* TEXT */}
                   <div className="absolute bottom-0 left-0 p-6">
-
                     <div className="flex items-center gap-3 mb-3">
-
-                      <h3
-                        className="
-                          text-3xl
-                          font-black
-                          tracking-tight
-                          text-[#f3eee8]
-                        "
-                      >
-                        {dest.name}
-                      </h3>
-
-                      <span
-                        className="
-                          text-xs
-                          uppercase
-                          tracking-[0.2em]
-                          text-white/50
-                        "
-                      >
-                        {dest.state}
-                      </span>
+                      <h3 className="text-3xl font-black tracking-tight text-[#f3eee8]">{dest.name}</h3>
+                      <span className="text-xs uppercase tracking-[0.2em] text-white/50">{dest.state}</span>
                     </div>
-
-                    <p
-                      className="
-                        text-[#d2cbc2]
-                        text-sm
-                        leading-relaxed
-                        max-w-sm
-                      "
-                    >
-                      {dest.tagline}
-                    </p>
+                    <p className="text-[#d2cbc2] text-sm leading-relaxed max-w-sm">{dest.tagline}</p>
                   </div>
                 </div>
-
-                {/* BOTTOM */}
-                <div
-                  className="
-                    flex items-center justify-between
-                    px-6 py-5
-                    border-t border-white/10
-                  "
-                >
+                <div className="flex items-center justify-between px-6 py-5 border-t border-white/10">
                   <div>
-                    <p
-                      className="
-                        text-white/35
-                        text-xs
-                        uppercase
-                        tracking-[0.2em]
-                      "
-                    >
-                      Weekend Experience
-                    </p>
-
-                    <h4 className="text-white font-semibold mt-1">
-                      Explore Options
-                    </h4>
+                    <p className="text-white/35 text-xs uppercase tracking-[0.2em]">Weekend Experience</p>
+                    <h4 className="text-white font-semibold mt-1">Explore Options</h4>
                   </div>
-
-                  {/* STATIC BUTTON */}
-                  <div
-                    className="
-                      w-12 h-12
-                      rounded-2xl
-                      flex items-center justify-center
-                      bg-white/[0.05]
-                      border border-white/10
-                      text-white/50
-                      transition-all duration-500
-                      group-hover:bg-orange-500
-                      group-hover:text-white
-                    "
-                  >
+                  <div className="w-12 h-12 rounded-2xl flex items-center justify-center bg-white/[0.05] border border-white/10 text-white/50 transition-all duration-500 group-hover:bg-orange-500 group-hover:text-white">
                     <ArrowRight size={18} />
                   </div>
                 </div>
