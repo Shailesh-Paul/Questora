@@ -4,6 +4,7 @@ import useTripStore from "../store/tripStore";
 import { MOCK_HOTELS, MOCK_ACTIVITIES, generateAIInsights, fetchListings, mapDbToHotel, mapDbToActivity } from "../lib/api";
 import { ArrowLeft, Star, Clock, Users, ExternalLink, CreditCard, Sparkles, X, CheckCircle, Wallet } from "lucide-react";
 import toast from "react-hot-toast";
+import DemandEngine from "../components/DemandEngine";
 
 export default function ItineraryPage() {
   const navigate = useNavigate();
@@ -161,6 +162,9 @@ export default function ItineraryPage() {
             </div>
           )}
         </div>
+
+        {/* Demand Engine Section */}
+        <DemandEngine destination={destination} budget={budget} />
 
         {/* Activities Section */}
         <div className="mb-20">

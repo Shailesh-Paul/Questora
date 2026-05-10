@@ -21,6 +21,7 @@ app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // 4. API Routes
 app.use('/api/listings', require('./routes/listingRoutes'));
+const Booking = require('./models/Booking');
 
 // 5. Health Check & Root Route
 app.get('/api/health', (req, res) => {
@@ -66,6 +67,98 @@ mongoose.connect(MONGO_URI)
     console.error('❌ MongoDB Connection Error:', err.message);
     process.exit(1);
   });
+
+// Real-Time Availability Routes (Added from YashNN branch)
+const fs = require('fs').promises;
+const BOOKINGS_FILE = path.join(__dirname, 'bookings.json');
+
+// Helper to load bookings
+async function loadBookings() {
+  try {
+    const data = await fs.readFile(BOOKINGS_FILE, 'utf8');
+    return JSON.parse(data);
+  } catch (err) {
+    return [];
+  }
+}
+
+// Helper to save bookings
+async function saveBookings(bookings) {
+  await fs.writeFile(BOOKINGS_FILE, JSON.stringify(bookings, null, 2), 'utf8');
+}
+
+app.post('/api/bookings', async (req, res) => {
+  try {
+    const { items, destinationId, startDate, endDate, quantity } = req.body;
+    
+    if (!items || !destinationId || !startDate || !endDate) {
+      return res.status(400).json({ error: 'Missing required fields' });
+    }
+
+    const bookings = await loadBookings();
+    
+    const newBookings = items.map(item => ({
+      id: Date.now().toString() + Math.random().toString(36).substr(2, 5),
+      itemId: item.id,
+      type: item.type || 'activity',
+      destinationId,
+      startDate: new Date(startDate).toISOString(),
+      endDate: new Date(endDate).toISOString(),
+      quantityBooked: quantity || 1
+    }));
+    
+    bookings.push(...newBookings);
+    await saveBookings(bookings);
+    
+    res.status(201).json({ message: 'Bookings successful' });
+  } catch (err) {
+    console.error("Booking Error:", err);
+    res.status(500).json({ error: 'Failed to save bookings' });
+  }
+});
+
+app.get('/api/availability', async (req, res) => {
+  try {
+    const { destinationId, start, end } = req.query;
+    
+    if (!destinationId || !start || !end) {
+      return res.status(400).json({ error: 'Missing parameters' });
+    }
+
+    const queryStart = new Date(start);
+    const queryEnd = new Date(end);
+    
+    const bookings = await loadBookings();
+
+    const relevantBookings = bookings.filter(b => {
+      const bStart = new Date(b.startDate);
+      const bEnd = new Date(b.endDate);
+      return b.destinationId === destinationId && bStart <= queryEnd && bEnd >= queryStart;
+    });
+
+    const dailyTotals = {};
+    
+    relevantBookings.forEach(booking => {
+      let current = new Date(booking.startDate);
+      const end = new Date(booking.endDate);
+      current.setHours(0,0,0,0);
+      end.setHours(0,0,0,0);
+      
+      while (current <= end) {
+        const dateStr = current.toISOString().split('T')[0];
+        if (!dailyTotals[dateStr]) dailyTotals[dateStr] = 0;
+        dailyTotals[dateStr] += booking.quantityBooked;
+        
+        current.setDate(current.getDate() + 1);
+      }
+    });
+
+    res.json({ dailyTotals });
+  } catch (err) {
+    console.error("Availability Error:", err);
+    res.status(500).json({ error: 'Failed to fetch availability' });
+  }
+});
 
 // 8. Start Server
 app.listen(PORT, () => {
