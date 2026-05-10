@@ -2,65 +2,65 @@ const express = require('express');
 const cors = require('cors');
 const mongoose = require('mongoose');
 const dotenv = require('dotenv');
+const path = require('path');
 
+// 1. Load Environment Variables
 dotenv.config();
 
 const app = express();
 const PORT = process.env.PORT || 5000;
 
-// Middleware
+// 2. Middleware Setup
 app.use(cors());
 app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 
-// Routes
+// 3. Static Files (For local image storage if needed)
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+
+// 4. API Routes
 app.use('/api/listings', require('./routes/listingRoutes'));
 
-// Basic Route
+// 5. Health Check & Root Route
 app.get('/api/health', (req, res) => {
-  res.json({ status: 'ok', message: 'WeekendWander API is running' });
+  res.json({ status: 'ok', serverTime: new Date() });
 });
 
-// Mock Data for Destinations (to replace frontend static data eventually)
-app.get('/api/destinations', (req, res) => {
-  res.json([
-    {
-      id: "manali",
-      name: "Manali",
-      state: "Himachal Pradesh",
-      tagline: "Adventure & Peace",
-      image: "https://images.unsplash.com/photo-1626621341517-bbf3d9990a23?ixlib=rb-4.0.3&auto=format&fit=crop&w=1400&q=80",
-      color: "#F28C28",
-      tag: "Mountain Retreat",
-      crowdLevel: "high" // red
-    },
-    {
-      id: "goa",
-      name: "Goa",
-      state: "Goa",
-      tagline: "Beaches & Vibes",
-      image: "https://images.unsplash.com/photo-1512343879784-a960bf40e7f2?ixlib=rb-4.0.3&auto=format&fit=crop&w=1400&q=80",
-      color: "#28B463",
-      tag: "Coastal Vibe",
-      crowdLevel: "medium" // yellow
-    },
-    {
-      id: "rishikesh",
-      name: "Rishikesh",
-      state: "Uttarakhand",
-      tagline: "Yoga & Rafting",
-      image: "https://images.unsplash.com/photo-1594801121008-0113c4c8d197?ixlib=rb-4.0.3&auto=format&fit=crop&w=1400&q=80",
-      color: "#3498DB",
-      tag: "Spiritual Action",
-      crowdLevel: "low" // green
-    }
-  ]);
+// 6. Razorpay Integration
+const Razorpay = require('razorpay');
+app.post('/api/create-order', async (req, res) => {
+  try {
+    const razorpay = new Razorpay({
+      key_id: process.env.RAZORPAY_KEY_ID || 'rzp_test_SnQQo0BjlwDtYq',
+      key_secret: process.env.RAZORPAY_SECRET || 'your_secret',
+    });
+    const options = {
+      amount: req.body.amount * 100, // paise
+      currency: "INR",
+      receipt: "receipt_" + Date.now(),
+    };
+    const order = await razorpay.orders.create(options);
+    res.json(order);
+  } catch (error) {
+    console.error("Razorpay Error:", error);
+    res.status(500).send("Error creating payment order");
+  }
 });
 
-// MongoDB Connection
-mongoose.connect(process.env.MONGO_URI || 'mongodb://localhost:27017/weekendwander')
-  .then(() => console.log('MongoDB Connected'))
-  .catch(err => console.log('MongoDB Connection Error: ', err));
+// 7. MongoDB Connection
+const MONGO_URI = process.env.MONGO_URI || 'mongodb://localhost:27017/weekendwander';
+mongoose.connect(MONGO_URI)
+  .then((conn) => {
+    console.log(`✅ MongoDB Connected: ${conn.connection.host}`);
+    console.log(`📂 Database Name: ${conn.connection.name}`);
+  })
+  .catch(err => {
+    console.error('❌ MongoDB Connection Error:', err.message);
+    process.exit(1);
+  });
 
+// 8. Start Server
 app.listen(PORT, () => {
-  console.log(`Server is running on port ${PORT}`);
+  console.log(`🚀 Server is flying on port ${PORT}`);
+  console.log(`📡 API Base URL: http://localhost:${PORT}/api`);
 });
