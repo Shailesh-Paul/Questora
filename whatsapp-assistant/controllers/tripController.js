@@ -129,13 +129,7 @@ class TripController {
 
       // Send welcome WhatsApp message
       setTimeout(async () => {
-        await twilioService.sendWelcomeMessage(`whatsapp:${phone_number}`, {
-          destination,
-          hotel: trip.hotel,
-          check_in_date: checkIn,
-          check_out_date: checkOut,
-          budget: trip.budget
-        });
+        await twilioService.sendWelcomeMessage(`whatsapp:${phone_number}`, trip);
 
         // Update welcome sent status
         await Trip.findByIdAndUpdate(trip._id, { welcome_sent: true });
