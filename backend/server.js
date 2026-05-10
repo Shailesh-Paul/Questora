@@ -73,20 +73,6 @@ mongoose.connect(MONGO_URI)
 const fs = require('fs').promises;
 const BOOKINGS_FILE = path.join(__dirname, 'bookings.json');
 
-// Helper to load bookings
-async function loadBookings() {
-  try {
-    const data = await fs.readFile(BOOKINGS_FILE, 'utf8');
-    return JSON.parse(data);
-  } catch (err) {
-    return [];
-  }
-}
-
-// Helper to save bookings
-async function saveBookings(bookings) {
-  await fs.writeFile(BOOKINGS_FILE, JSON.stringify(bookings, null, 2), 'utf8');
-}
 
 app.post('/api/bookings', async (req, res) => {
   try {
@@ -128,27 +114,23 @@ app.get('/api/availability', async (req, res) => {
     const queryStart = new Date(start);
     const queryEnd = new Date(end);
     
-    const bookings = await loadBookings();
-
-    const relevantBookings = bookings.filter(b => {
-      const bStart = new Date(b.startDate);
-      const bEnd = new Date(b.endDate);
-      return b.destinationId === destinationId && bStart <= queryEnd && bEnd >= queryStart;
+    const relevantBookings = await Booking.find({
+      destinationId,
+      startDate: { $lte: queryEnd },
+      endDate: { $gte: queryStart }
     });
 
     const dailyTotals = {};
-    
     relevantBookings.forEach(booking => {
-      let current = new Date(booking.startDate);
-      const end = new Date(booking.endDate);
-      current.setHours(0,0,0,0);
-      end.setHours(0,0,0,0);
+      const bStart = new Date(booking.startDate);
+      const bEnd = new Date(booking.endDate);
       
-      while (current <= end) {
+      let current = new Date(Math.max(bStart, queryStart));
+      const finish = new Date(Math.min(bEnd, queryEnd));
+      
+      while (current <= finish) {
         const dateStr = current.toISOString().split('T')[0];
-        if (!dailyTotals[dateStr]) dailyTotals[dateStr] = 0;
-        dailyTotals[dateStr] += booking.quantityBooked;
-        
+        dailyTotals[dateStr] = (dailyTotals[dateStr] || 0) + booking.quantityBooked;
         current.setDate(current.getDate() + 1);
       }
     });
@@ -161,7 +143,11 @@ app.get('/api/availability', async (req, res) => {
 });
 
 // 8. Start Server
-app.listen(PORT, () => {
-  console.log(`🚀 Server is flying on port ${PORT}`);
-  console.log(`📡 API Base URL: http://localhost:${PORT}/api`);
-});
+if (process.env.NODE_ENV !== 'production') {
+  app.listen(PORT, () => {
+    console.log(`🚀 Server is flying on port ${PORT}`);
+    console.log(`📡 API Base URL: http://localhost:${PORT}/api`);
+  });
+}
+
+module.exports = app;

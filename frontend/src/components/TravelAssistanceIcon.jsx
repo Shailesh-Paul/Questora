@@ -1,8 +1,8 @@
 import React, { useState } from "react";
-import { MessageCircle, X, Send, Bot } from "lucide-react";
+import { MessageCircle, X, Send, Bot, ExternalLink } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
 import useTripStore from "../store/tripStore";
-
-const WHATSAPP_ASSISTANT_URL = 'http://localhost:5001';
+import { WHATSAPP_ASSISTANT_URL } from "../config";
 
 export default function TravelAssistantIcon() {
   const [isOpen, setIsOpen] = useState(false);

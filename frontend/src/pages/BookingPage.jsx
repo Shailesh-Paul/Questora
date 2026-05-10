@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import useTripStore from "../store/tripStore";
 import toast from "react-hot-toast";
 import { ArrowLeft, CreditCard, CheckCircle, ShieldCheck } from "lucide-react";
+import { API_BASE_URL, WHATSAPP_ASSISTANT_URL } from "../config";
 
 const loadRazorpayScript = () => {
   return new Promise((resolve) => {
@@ -50,7 +51,7 @@ export default function BookingPage() {
       }
 
       // 2. Record booking in main backend database
-      await fetch("http://localhost:5000/api/bookings", {
+      await fetch(`${API_BASE_URL}/bookings`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -65,7 +66,7 @@ export default function BookingPage() {
 
       // 3. Initialize WhatsApp Assistant (Sends actual WhatsApp message)
       try {
-        await fetch("http://localhost:5001/api/v1/trips/initialize", {
+        await fetch(`${WHATSAPP_ASSISTANT_URL}/api/v1/trips/initialize`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({

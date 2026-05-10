@@ -1,4 +1,5 @@
 import axios from "axios";
+import { API_BASE_URL } from "../config";
 
 export const fetchWeather = async (city) => {
   try {
@@ -16,7 +17,7 @@ export const fetchWeather = async (city) => {
 
 export const fetchListings = async () => {
   try {
-    const apiUrl = process.env.REACT_APP_API_URL || "http://localhost:5000/api";
+    const apiUrl = API_BASE_URL;
     const res = await axios.get(`${apiUrl}/listings`);
     return res.data;
   } catch (err) {
