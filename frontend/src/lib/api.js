@@ -172,14 +172,14 @@ export const MOCK_HOTELS = [
 ];
 
 export const MOCK_ACTIVITIES = [
-  { id: "a1", name: "White Water Rafting — Grade 4", duration: "3 hrs", price: 1200, category: "Extreme", rating: 4.8, slots: 20 },
-  { id: "a2", name: "Bungee Jumping at Mohan Chatti", duration: "2 hrs", price: 3500, category: "Extreme", rating: 4.9, slots: 8 },
-  { id: "a3", name: "Sunset Kayaking on Ganges", duration: "1.5 hrs", price: 900, category: "Adventure", rating: 4.7, slots: 15 },
-  { id: "a4", name: "Beatles Ashram Yoga Retreat", duration: "Half day", price: 1500, category: "Wellness", rating: 4.6, slots: 30 },
-  { id: "a5", name: "Camping & Bonfire at Shivpuri", duration: "Overnight", price: 2800, category: "Adventure", rating: 4.8, slots: 25 },
-  { id: "a6", name: "Ganga Aarti & Local Walk", duration: "2 hrs", price: 500, category: "Culture", rating: 4.9, slots: 50 },
-  { id: "a7", name: "Himalayan Mountain Biking", duration: "4 hrs", price: 1800, category: "Extreme", rating: 4.7, slots: 10 },
-  { id: "a8", name: "Pottery Class with Locals", duration: "2 hrs", price: 600, category: "Culture", rating: 4.5, slots: 12 }
+  { id: "a1", name: "White Water Rafting — Grade 4", duration: "3 hrs", price: 1200, category: "Extreme", rating: 4.8, slots: 20, image: "https://images.unsplash.com/photo-1530866495561-507c9faab2ed?w=800", shortDesc: "Navigate the thrilling rapids of the Ganges with expert guides. Experience the ultimate adrenaline rush amidst the breathtaking Himalayan foothills." },
+  { id: "a2", name: "Bungee Jumping at Mohan Chatti", duration: "2 hrs", price: 3500, category: "Extreme", rating: 4.9, slots: 8, image: "https://images.unsplash.com/photo-1522044810620-3e28ce194ddc?w=800", shortDesc: "Take a leap of faith from India's highest bungee platform. Feel the wind rush past as you free-fall over the pristine valley." },
+  { id: "a3", name: "Sunset Kayaking on Ganges", duration: "1.5 hrs", price: 900, category: "Adventure", rating: 4.7, slots: 15, image: "https://images.unsplash.com/photo-1544551763-46a013bb70d5?w=800", shortDesc: "Paddle along the serene waters of the Ganges as the sun dips below the horizon. Enjoy an intimate, peaceful encounter with the river's evening calm." },
+  { id: "a4", name: "Beatles Ashram Yoga Retreat", duration: "Half day", price: 1500, category: "Wellness", rating: 4.6, slots: 30, image: "https://images.unsplash.com/photo-1544367567-0f2fcb009e0b?w=800", shortDesc: "Immerse yourself in deep meditation at the historic Chaurasi Kutia ashram. Connect with your inner self in the very place that inspired the legendary band." },
+  { id: "a5", name: "Camping & Bonfire at Shivpuri", duration: "Overnight", price: 2800, category: "Adventure", rating: 4.8, slots: 25, image: "https://images.unsplash.com/photo-1523987355523-c7b5b0dd90a7?w=800", shortDesc: "Spend an unforgettable night under the starry sky on the white sand beaches of the Ganges. Share stories around a crackling bonfire with fellow travelers." },
+  { id: "a6", name: "Ganga Aarti & Local Walk", duration: "2 hrs", price: 500, category: "Culture", rating: 4.9, slots: 50, image: "https://upload.wikimedia.org/wikipedia/commons/4/4c/Aarti_raised_up_during_evening_Ganga_aarti%2C_Varanasi.jpg", shortDesc: "Witness the mesmerizing evening fire ritual performed by synchronized priests on the ghats. Followed by a guided walk through the ancient, vibrant alleys." },
+  { id: "a7", name: "Himalayan Mountain Biking", duration: "4 hrs", price: 1800, category: "Extreme", rating: 4.7, slots: 10, image: "https://images.unsplash.com/photo-1541625602330-2277a4c46182?w=800", shortDesc: "Conquer rugged mountain trails with spectacular panoramic views of the Garhwal Himalayas. A challenging and rewarding adventure for cycling enthusiasts." },
+  { id: "a8", name: "Pottery Class with Locals", duration: "2 hrs", price: 600, category: "Culture", rating: 4.5, slots: 12, image: "https://images.unsplash.com/photo-1533907650686-70576141c030?w=800", shortDesc: "Learn the traditional art of clay pottery directly from local artisans. Shape your own souvenirs on a classic spinning wheel while hearing village stories." }
 ];
 
 export const DESTINATIONS = [

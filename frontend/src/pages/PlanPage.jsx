@@ -189,7 +189,7 @@ export default function PlanPage() {
   const [weather, setWeather] = useState(null);
   const [selectedModalActivity, setSelectedModalActivity] = useState(null);
   const [showBillModal, setShowBillModal] = useState(false);
-  const [activeMapActivity, setActiveMapActivity] = useState(MOCK_ACTIVITIES[0]);
+  const [activeMapActivity, setActiveMapActivity] = useState(null);
 
   // Node positions for the map
   const mapPositions = [
@@ -618,61 +618,65 @@ export default function PlanPage() {
             <div className="flex flex-col xl:flex-row gap-8 items-stretch h-auto xl:h-[600px] mb-20">
               
               {/* Left Side: Featured Activity Details */}
-              <div className="xl:w-[450px] shrink-0 bg-white/80 backdrop-blur-md rounded-[2.5rem] border border-slate-200 overflow-hidden shadow-xl flex flex-col relative">
-                {activeMapActivity && (
-                  <>
-                    <div className="h-64 sm:h-72 w-full relative shrink-0">
-                      <img src={activeMapActivity.thumb1} className="w-full h-full object-cover" alt="Featured Activity" />
-                      <div className="absolute inset-0 bg-gradient-to-t from-slate-900 via-slate-900/40 to-transparent"></div>
-                      <div className="absolute top-5 right-5 w-10 h-10 rounded-full bg-white/20 backdrop-blur-md flex items-center justify-center text-xl shadow-lg border border-white/30">
-                        {activeMapActivity.category === 'Adventure' ? '🛶' : activeMapActivity.category === 'Extreme' ? '🪂' : activeMapActivity.category === 'Wellness' ? '🧘' : activeMapActivity.category === 'Culture' ? '🪔' : '⛺'}
-                      </div>
-                      <div className="absolute bottom-5 left-6 right-6">
-                        <span className="px-3 py-1 bg-orange-500 text-white text-[9px] font-bold tracking-widest uppercase rounded-full mb-2 inline-block shadow-md">
-                          {activeMapActivity.category}
-                        </span>
-                        <h3 className="font-display font-bold text-3xl text-white leading-tight">{activeMapActivity.name}</h3>
-                      </div>
+              {activeMapActivity ? (
+                <div className="xl:w-[450px] shrink-0 bg-white/80 backdrop-blur-md rounded-[2.5rem] border border-slate-200 overflow-hidden shadow-xl flex flex-col relative animate-in fade-in duration-300">
+                  <div className="h-64 sm:h-72 w-full relative shrink-0">
+                    <img src={activeMapActivity.image} className="w-full h-full object-cover" alt="Featured Activity" />
+                    <div className="absolute inset-0 bg-gradient-to-t from-slate-900 via-slate-900/40 to-transparent"></div>
+                    <div className="absolute top-5 right-5 w-10 h-10 rounded-full bg-white/20 backdrop-blur-md flex items-center justify-center text-xl shadow-lg border border-white/30">
+                      {activeMapActivity.category === 'Adventure' ? '🛶' : activeMapActivity.category === 'Extreme' ? '🪂' : activeMapActivity.category === 'Wellness' ? '🧘' : activeMapActivity.category === 'Culture' ? '🪔' : '⛺'}
                     </div>
+                    <div className="absolute bottom-5 left-6 right-6">
+                      <span className="px-3 py-1 bg-orange-500 text-white text-[9px] font-bold tracking-widest uppercase rounded-full mb-2 inline-block shadow-md">
+                        {activeMapActivity.category}
+                      </span>
+                      <h3 className="font-display font-bold text-3xl text-white leading-tight">{activeMapActivity.name}</h3>
+                    </div>
+                  </div>
+                  
+                  <div className="p-8 flex flex-col flex-1">
+                    <p className="text-slate-600 font-medium text-lg italic mb-8 leading-relaxed flex-1">"{activeMapActivity.shortDesc}"</p>
                     
-                    <div className="p-8 flex flex-col flex-1">
-                      <p className="text-slate-600 font-medium text-lg italic mb-8 leading-relaxed flex-1">"{activeMapActivity.shortDesc}"</p>
-                      
-                      <div className="grid grid-cols-2 gap-4 mb-8">
-                        <div className="bg-slate-50 border border-slate-100 rounded-2xl p-4 flex items-center gap-3">
-                          <div className="w-8 h-8 rounded-full bg-slate-200 flex items-center justify-center text-slate-500 text-sm">⏱️</div>
-                          <div>
-                            <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Duration</p>
-                            <p className="font-bold text-slate-800 text-sm">{activeMapActivity.duration}</p>
-                          </div>
-                        </div>
-                        <div className="bg-slate-50 border border-slate-100 rounded-2xl p-4 flex items-center gap-3">
-                          <div className="w-8 h-8 rounded-full bg-slate-200 flex items-center justify-center text-slate-500 text-sm">💰</div>
-                          <div>
-                            <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Price</p>
-                            <p className="font-bold text-slate-800 text-sm">₹{activeMapActivity.price} <span className="text-[10px] text-slate-500">pp</span></p>
-                          </div>
+                    <div className="grid grid-cols-2 gap-4 mb-8">
+                      <div className="bg-slate-50 border border-slate-100 rounded-2xl p-4 flex items-center gap-3">
+                        <div className="w-8 h-8 rounded-full bg-slate-200 flex items-center justify-center text-slate-500 text-sm">⏱️</div>
+                        <div>
+                          <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Duration</p>
+                          <p className="font-bold text-slate-800 text-sm">{activeMapActivity.duration}</p>
                         </div>
                       </div>
-
-                      <button 
-                        onClick={() => toggleActivity(activeMapActivity.id)}
-                        className={`w-full py-5 rounded-2xl font-bold uppercase tracking-widest text-[11px] transition-all flex items-center justify-center gap-3 shadow-md border-2 ${
-                          selectedActivities.includes(activeMapActivity.id) 
-                            ? 'bg-slate-100 text-slate-600 border-slate-200 hover:bg-slate-200' 
-                            : 'bg-orange-500 text-white border-orange-500 hover:bg-orange-600 hover:shadow-lg hover:-translate-y-1'
-                        }`}
-                      >
-                        {selectedActivities.includes(activeMapActivity.id) ? (
-                          <> <Check size={16} /> Added to Trip </>
-                        ) : (
-                          <> <Plus size={16} /> Add to Trip </>
-                        )}
-                      </button>
+                      <div className="bg-slate-50 border border-slate-100 rounded-2xl p-4 flex items-center gap-3">
+                        <div className="w-8 h-8 rounded-full bg-slate-200 flex items-center justify-center text-slate-500 text-sm">💰</div>
+                        <div>
+                          <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Price</p>
+                          <p className="font-bold text-slate-800 text-sm">₹{activeMapActivity.price} <span className="text-[10px] text-slate-500">pp</span></p>
+                        </div>
+                      </div>
                     </div>
-                  </>
-                )}
-              </div>
+
+                    <button 
+                      onClick={() => toggleActivity(activeMapActivity.id)}
+                      className={`w-full py-5 rounded-2xl font-bold uppercase tracking-widest text-[11px] transition-all flex items-center justify-center gap-3 shadow-md border-2 ${
+                        selectedActivities.includes(activeMapActivity.id) 
+                          ? 'bg-slate-100 text-slate-600 border-slate-200 hover:bg-slate-200' 
+                          : 'bg-orange-500 text-white border-orange-500 hover:bg-orange-600 hover:shadow-lg hover:-translate-y-1'
+                      }`}
+                    >
+                      {selectedActivities.includes(activeMapActivity.id) ? (
+                        <> <Check size={16} /> Added to Trip </>
+                      ) : (
+                        <> <Plus size={16} /> Add to Trip </>
+                      )}
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <div className="xl:w-[450px] shrink-0 bg-slate-50/50 backdrop-blur-sm rounded-[2.5rem] border-2 border-dashed border-slate-200 flex flex-col items-center justify-center p-8 text-center shadow-inner">
+                  <div className="w-16 h-16 bg-slate-200 rounded-full flex items-center justify-center text-2xl mb-4 text-slate-400">📍</div>
+                  <h3 className="font-display font-bold text-xl text-slate-700 mb-2">Select an Activity</h3>
+                  <p className="text-slate-500 font-medium text-sm">Click on any of the interactive pins on the map to view detailed information and add experiences to your itinerary.</p>
+                </div>
+              )}
 
               {/* Right Side: Interactive Map */}
               <div className="flex-1 bg-white rounded-[2.5rem] border border-slate-200 overflow-hidden relative min-h-[500px] xl:min-h-0 shadow-inner group">
@@ -776,7 +780,7 @@ export default function PlanPage() {
               <X size={20} />
             </button>
             <div className="h-64 sm:h-80 w-full relative">
-              <img src={selectedModalActivity.thumb1} className="w-full h-full object-cover" alt="Activity Modal Cover" />
+              <img src={selectedModalActivity.image} className="w-full h-full object-cover" alt="Activity Modal Cover" />
               <div className="absolute inset-0 bg-gradient-to-t from-slate-900/90 to-transparent"></div>
               <div className="absolute bottom-6 left-6 right-6">
                 <span className="px-3 py-1 bg-orange-500 text-white text-[10px] font-bold tracking-widest uppercase rounded-md mb-3 inline-block shadow-md">
