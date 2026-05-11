@@ -63,7 +63,16 @@ export default function BookingPage() {
       }
 
       const userData = JSON.parse(localStorage.getItem("user"));
-      let userPhone = userData?.phoneNumber || "911234567890";
+
+      // Get user's phone number - require login for WhatsApp to work
+      if (!userData?.phoneNumber) {
+        toast.error("Please login with your WhatsApp number first!");
+        setIsProcessing(false);
+        navigate("/login");
+        return;
+      }
+
+      let userPhone = userData.phoneNumber;
 
       // Ensure phone number has '+' prefix for Twilio WhatsApp
       if (!userPhone.startsWith("+")) {
