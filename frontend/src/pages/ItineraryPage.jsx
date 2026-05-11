@@ -1,13 +1,19 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import useTripStore from "../store/tripStore";
+<<<<<<< HEAD
 import { MOCK_HOTELS, MOCK_ACTIVITIES, generateAIInsights } from "../lib/api";
+=======
+import { MOCK_HOTELS, MOCK_ACTIVITIES, generateAIInsights, fetchListings, mapDbToHotel, mapDbToActivity } from "../lib/api";
+>>>>>>> origin2/main
 import { ArrowLeft, Star, Clock, Users, ExternalLink, CreditCard, Sparkles, X, CheckCircle, Wallet } from "lucide-react";
 import toast from "react-hot-toast";
+import DemandEngine from "../components/DemandEngine";
 
 export default function ItineraryPage() {
   const navigate = useNavigate();
   const { destination: destId } = useParams();
+<<<<<<< HEAD
   const { destination, members, budget, addToCart, removeFromCart, cart, selectedHotel, selectHotel, getRemainingBudget, autoSaveTrip, dateRange } = useTripStore();
   const nightsLocal = dateRange.start && dateRange.end ? Math.max(1, Math.round((new Date(dateRange.end) - new Date(dateRange.start)) / (1000 * 60 * 60 * 24))) : 2;
 
@@ -15,6 +21,36 @@ export default function ItineraryPage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [activityFilter, setActivityFilter] = useState("All");
   const [aiInsights, setAiInsights] = useState({});
+=======
+  const { destination, members, budget, addToCart, removeFromCart, cart, selectedHotel, selectHotel, getRemainingBudget } = useTripStore();
+  const nights = 2;
+>>>>>>> origin2/main
+
+  const [activeCategory, setActiveCategory] = useState(null); // 'hotel', 'hostel', 'home'
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [activityFilter, setActivityFilter] = useState("All");
+  const [aiInsights, setAiInsights] = useState({});
+  const [dbStays, setDbStays] = useState([]);
+  const [dbActivities, setDbActivities] = useState([]);
+
+  useEffect(() => {
+    if (!destination?.name) return;
+
+    fetchListings().then(listings => {
+      const targetDest = destination.name.toLowerCase().trim();
+      const locationFiltered = listings.filter(l => 
+        l.location && l.location.toLowerCase().includes(targetDest)
+      );
+
+      const stays = locationFiltered.filter(l => l.category === "Stay").map(mapDbToHotel);
+      const acts = locationFiltered.filter(l => l.category === "Activities").map(mapDbToActivity);
+      setDbStays(stays);
+      setDbActivities(acts);
+    }).catch(err => console.error("Itinerary fetch error:", err));
+  }, [destination]);
+
+  const allHotels = [...MOCK_HOTELS, ...dbStays];
+  const allActivities = [...MOCK_ACTIVITIES, ...dbActivities];
 
   const inCart = (id) => cart.some((i) => i.id === id);
 
@@ -26,7 +62,10 @@ export default function ItineraryPage() {
       addToCart({ ...item, type: "activity", price: item.price * members });
       toast.success(`${item.name} added`);
     }
+<<<<<<< HEAD
     autoSaveTrip();
+=======
+>>>>>>> origin2/main
   };
 
   const openStayModal = (category) => {
@@ -37,7 +76,11 @@ export default function ItineraryPage() {
   // Pre-fetch AI insights for hotels when modal opens
   useEffect(() => {
     if (isModalOpen && activeCategory) {
+<<<<<<< HEAD
       const hotels = MOCK_HOTELS.filter(h => h.type === activeCategory);
+=======
+      const hotels = allHotels.filter(h => h.type === activeCategory);
+>>>>>>> origin2/main
       hotels.forEach(hotel => {
         if (!aiInsights[hotel.id]) {
           generateAIInsights(hotel.name, hotel.type, { destination: destination?.name, budget, members }).then(insight => {
@@ -49,12 +92,21 @@ export default function ItineraryPage() {
   }, [isModalOpen, activeCategory, aiInsights, destination, budget, members]);
 
   const filteredActivities = activityFilter === "All" 
+<<<<<<< HEAD
     ? MOCK_ACTIVITIES 
     : MOCK_ACTIVITIES.filter(a => a.category === activityFilter);
 
   const categories = ["All", ...Array.from(new Set(MOCK_ACTIVITIES.map(a => a.category)))];
 
   const totalCost = cart.reduce((sum, i) => sum + i.price, 0) + (selectedHotel ? selectedHotel.price * nightsLocal : 0);
+=======
+    ? allActivities 
+    : allActivities.filter(a => a.category === activityFilter);
+
+  const categories = ["All", ...Array.from(new Set(allActivities.map(a => a.category)))];
+
+  const totalCost = cart.reduce((sum, i) => sum + i.price, 0) + (selectedHotel ? selectedHotel.price * nights : 0);
+>>>>>>> origin2/main
   const remaining = getRemainingBudget();
 
   return (
@@ -132,7 +184,11 @@ export default function ItineraryPage() {
                 <div>
                   <p className="text-orange-400 text-xs font-bold uppercase tracking-wider mb-1">Selected Stay</p>
                   <h4 className="font-bold text-xl">{selectedHotel.name}</h4>
+<<<<<<< HEAD
                   <p className="text-white/60 text-sm">₹{(selectedHotel.price * nightsLocal).toLocaleString("en-IN")} total for {nightsLocal} nights</p>
+=======
+                  <p className="text-white/60 text-sm">₹{(selectedHotel.price * nights).toLocaleString("en-IN")} total for {nights} nights</p>
+>>>>>>> origin2/main
                 </div>
               </div>
               <button onClick={() => openStayModal(selectedHotel.type)} className="px-4 py-2 bg-white/10 hover:bg-white/20 rounded-lg text-sm font-semibold transition-colors">
@@ -142,6 +198,12 @@ export default function ItineraryPage() {
           )}
         </div>
 
+<<<<<<< HEAD
+=======
+        {/* Demand Engine Section */}
+        <DemandEngine destination={destination} budget={budget} />
+
+>>>>>>> origin2/main
         {/* Activities Section */}
         <div className="mb-20">
           <h2 className="font-display text-3xl font-bold mb-8 flex items-center gap-3">
@@ -205,7 +267,11 @@ export default function ItineraryPage() {
           <div className="relative z-10">
             <p className="text-sm font-bold text-orange-400 tracking-widest uppercase mb-2">Final Summary</p>
             <p className="font-display text-4xl md:text-5xl font-bold">₹{totalCost.toLocaleString("en-IN")}</p>
+<<<<<<< HEAD
             <p className="text-white/50 mt-2">Includes {nightsLocal} nights stay + {cart.length} activities</p>
+=======
+            <p className="text-white/50 mt-2">Includes {nights} nights stay + {cart.length} activities</p>
+>>>>>>> origin2/main
           </div>
 
           <div className="flex flex-col sm:flex-row gap-4 relative z-10 w-full md:w-auto">
@@ -238,13 +304,26 @@ export default function ItineraryPage() {
             </div>
             
             <div className="overflow-y-auto p-6 space-y-6 flex-1 custom-scrollbar">
+<<<<<<< HEAD
               {MOCK_HOTELS.filter(h => h.type === activeCategory).map(hotel => (
+=======
+              {allHotels.filter(h => h.type === activeCategory).map(hotel => (
+>>>>>>> origin2/main
                 <div key={hotel.id} className={`flex flex-col md:flex-row gap-6 p-4 rounded-2xl border transition-all ${selectedHotel?.id === hotel.id ? 'bg-orange-500/10 border-orange-500/50' : 'bg-white/5 border-white/10 hover:bg-white/10'}`}>
                   <img src={hotel.image} alt={hotel.name} className="w-full md:w-48 h-48 rounded-xl object-cover" />
                   
                   <div className="flex-1 flex flex-col">
                     <div className="flex justify-between items-start mb-2">
+<<<<<<< HEAD
                       <h4 className="text-xl font-bold">{hotel.name}</h4>
+=======
+                      <div className="flex flex-col gap-1">
+                        <h4 className="text-xl font-bold">{hotel.name}</h4>
+                        {hotel.id.length > 20 && ( // MongoDB IDs are long, mock IDs are short
+                          <span className="w-max text-[9px] font-bold bg-emerald-500/20 text-emerald-400 px-2 py-0.5 rounded-full uppercase tracking-tighter">Verified Local Gem</span>
+                        )}
+                      </div>
+>>>>>>> origin2/main
                       <div className="flex gap-1">
                         {Array.from({length: hotel.stars}).map((_, i) => <Star key={i} size={14} className="fill-yellow-400 text-yellow-400" />)}
                       </div>
@@ -271,7 +350,10 @@ export default function ItineraryPage() {
                           selectHotel(hotel);
                           toast.success(`${hotel.name} selected as your stay.`);
                           setIsModalOpen(false);
+<<<<<<< HEAD
                           autoSaveTrip();
+=======
+>>>>>>> origin2/main
                         }}
                         className={`px-6 py-2.5 rounded-xl font-bold text-sm transition-all flex items-center gap-2 ${
                           selectedHotel?.id === hotel.id ? "bg-orange-500 text-white" : "bg-white text-slate-900 hover:bg-slate-200"
@@ -284,7 +366,11 @@ export default function ItineraryPage() {
                 </div>
               ))}
               
+<<<<<<< HEAD
               {MOCK_HOTELS.filter(h => h.type === activeCategory).length === 0 && (
+=======
+              {allHotels.filter(h => h.type === activeCategory).length === 0 && (
+>>>>>>> origin2/main
                 <div className="text-center py-12 text-white/50">
                   No {activeCategory}s currently available in this area.
                 </div>

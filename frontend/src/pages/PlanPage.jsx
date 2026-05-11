@@ -9,7 +9,7 @@ import toast from "react-hot-toast";
 import { format, differenceInDays, startOfMonth, endOfMonth, startOfWeek, endOfWeek, eachDayOfInterval, isSameMonth, isSameDay, isWithinInterval, isBefore, startOfDay, addDays, addMonths, subMonths } from "date-fns";
 import SuccessToast from "../components/SuccessToast";
 
-function CustomCalendar({ dateRange, setDateRange, weather }) {
+function CustomCalendar({ dateRange, setDateRange, weather, destinationId }) {
   const [currentMonth, setCurrentMonth] = useState(startOfMonth(new Date()));
 
   const monthStart = startOfMonth(currentMonth);
@@ -18,6 +18,26 @@ function CustomCalendar({ dateRange, setDateRange, weather }) {
   const endDate = endOfWeek(monthEnd);
 
   const days = eachDayOfInterval({ start: startDate, end: endDate });
+
+  const [availabilityData, setAvailabilityData] = useState({});
+
+  useEffect(() => {
+    if (!destinationId) return;
+    const fetchAvailability = async () => {
+      try {
+        const startStr = startDate.toISOString();
+        const endStr = endDate.toISOString();
+        const res = await fetch(`http://localhost:5000/api/availability?destinationId=${destinationId}&start=${startStr}&end=${endStr}`);
+        const data = await res.json();
+        if (data.dailyTotals) {
+          setAvailabilityData(data.dailyTotals);
+        }
+      } catch (err) {
+        console.error("Failed to fetch availability:", err);
+      }
+    };
+    fetchAvailability();
+  }, [destinationId, currentMonth]);
 
   const onDateClick = (day) => {
     if (isBefore(day, startOfDay(new Date()))) return;
@@ -46,6 +66,26 @@ function CustomCalendar({ dateRange, setDateRange, weather }) {
     return { temp, icon, statusText };
   };
 
+  const getAvailabilityForDay = (day) => {
+    if (isBefore(day, startOfDay(new Date()))) return null;
+    
+    // Assume daily capacity of 50 for the hackathon simulation
+    const MAX_CAPACITY = 50;
+    const dateStr = day.toISOString().split('T')[0];
+    const booked = availabilityData ? (availabilityData[dateStr] || 0) : 0;
+    
+    let score = (booked / MAX_CAPACITY) * 100;
+    // Just to have some visual variance if 0 bookings, add a tiny bit of random baseline based on weekend
+    if (booked === 0) {
+       const isWeekend = day.getDay() === 0 || day.getDay() === 6;
+       score = isWeekend ? 30 : 10;
+    }
+    
+    if (score >= 80) return { status: 'red', text: 'Low Availability', colorClass: 'bg-red-500' };
+    if (score >= 50) return { status: 'yellow', text: 'Filling Fast', colorClass: 'bg-yellow-500' };
+    return { status: 'green', text: 'Available', colorClass: 'bg-emerald-500' };
+  };
+
   return (
     <div className="bg-white/90 border border-slate-200 rounded-2xl p-4 shadow-sm backdrop-blur-md">
       <div className="flex justify-between items-center mb-3 px-2">
@@ -68,25 +108,43 @@ function CustomCalendar({ dateRange, setDateRange, weather }) {
           const isCurrentMonth = isSameMonth(day, monthStart);
           
           const dayWeather = isCurrentMonth && !isPast ? getWeatherForDay(day) : null;
+          const availability = isCurrentMonth && !isPast ? getAvailabilityForDay(day) : null;
 
           return (
             <div 
               key={day.toString()}
               onClick={() => onDateClick(day)}
               className={`
-                min-h-[50px] p-1 border rounded-lg flex flex-col items-center justify-between cursor-pointer transition-all
+                min-h-[60px] p-1 border rounded-lg flex flex-col items-center justify-start cursor-pointer transition-all relative overflow-hidden
                 ${!isCurrentMonth ? 'opacity-20 pointer-events-none border-transparent' : 'border-slate-100'}
                 ${isPast ? 'opacity-40 pointer-events-none bg-slate-50 border-slate-200' : 'hover:border-orange-400 hover:shadow-sm'}
                 ${isSelected ? 'bg-orange-500 text-white border-orange-500 shadow-md transform scale-[1.02] z-10' : 'bg-white text-slate-700'}
                 ${isWithin && !isSelectedStart && !isSelectedEnd ? 'bg-orange-50 text-orange-900 border-orange-200 shadow-none transform-none' : ''}
               `}
             >
-              <span className={`text-sm font-bold ${isSelected && !isWithin ? 'text-white' : ''}`}>{format(day, "d")}</span>
-              {dayWeather && (
-                <div className={`text-center flex flex-col items-center mt-0.5 ${isSelected && !isWithin ? 'text-white' : 'text-slate-500'}`}>
-                  <span className={`text-[9px] font-bold leading-none ${isSelected && !isWithin ? 'text-orange-100' : 'text-slate-400'}`}>{dayWeather.temp}° {dayWeather.statusText}</span>
-                </div>
+              {availability && !isSelected && (
+                <div className={`absolute top-0 right-0 w-full h-1 ${availability.colorClass} opacity-80`}></div>
               )}
+              
+              <span className={`text-sm font-bold mt-1 ${isSelected && !isWithin ? 'text-white' : ''}`}>{format(day, "d")}</span>
+              
+              <div className="mt-auto w-full flex flex-col items-center gap-0.5 pb-0.5">
+                {dayWeather && (
+                  <span className={`text-[9px] font-bold leading-none ${isSelected && !isWithin ? 'text-orange-100' : 'text-slate-400'}`}>
+                    {dayWeather.temp}° {dayWeather.statusText}
+                  </span>
+                )}
+                {availability && (
+                  <span className={`text-[8px] font-bold leading-none px-1 py-0.5 rounded-sm uppercase tracking-wider
+                    ${isSelected && !isWithin ? 'bg-white/20 text-white' : 
+                      availability.status === 'red' ? 'bg-red-100 text-red-600' : 
+                      availability.status === 'yellow' ? 'bg-yellow-100 text-yellow-700' : 
+                      'bg-emerald-100 text-emerald-600'}
+                  `}>
+                    {availability.text}
+                  </span>
+                )}
+              </div>
             </div>
           );
         })}
@@ -113,9 +171,13 @@ export default function PlanPage() {
     selectedActivities,
     toggleActivity,
     cart,
+<<<<<<< HEAD
     addToCart,
     autoSaveTrip,
     nights
+=======
+    addToCart
+>>>>>>> origin2/main
   } = useTripStore();
 
   const parseDateSafe = (d) => {
@@ -134,8 +196,12 @@ export default function PlanPage() {
   const [weather, setWeather] = useState(null);
   const [selectedModalActivity, setSelectedModalActivity] = useState(null);
   const [showBillModal, setShowBillModal] = useState(false);
+<<<<<<< HEAD
   const [activeMapActivity, setActiveMapActivity] = useState(MOCK_ACTIVITIES[0]);
   const [showSuccessToast, setShowSuccessToast] = useState(false);
+=======
+  const [activeMapActivity, setActiveMapActivity] = useState(null);
+>>>>>>> origin2/main
 
   // Node positions for the map
   const mapPositions = [
@@ -181,7 +247,20 @@ export default function PlanPage() {
       toast.error("Please select travel dates.");
       return;
     }
+<<<<<<< HEAD
     navigate(`/itinerary/${destination.name}`);
+=======
+
+    // Sync selectedActivities to cart
+    selectedActivities.forEach(id => {
+      const act = MOCK_ACTIVITIES.find(a => a.id === id);
+      if (act && !cart.some(c => c.id === id)) {
+        addToCart({ ...act, type: "activity", price: act.price * members });
+      }
+    });
+
+    navigate(`/itinerary/${destination.id}`);
+>>>>>>> origin2/main
   };
 
   useEffect(() => {
@@ -449,9 +528,8 @@ export default function PlanPage() {
                   <button className="px-6 py-3 bg-white/80 border-2 border-slate-200 rounded-xl text-sm font-bold hover:border-orange-500 hover:text-orange-600 transition-all shadow-sm">+3w</button>
                 </div>
 
-                {/* Weather Calendar */}
                 <div className="mb-6 max-w-lg">
-                  <CustomCalendar dateRange={dateRange} setDateRange={setDateRange} weather={weather} />
+                  <CustomCalendar dateRange={dateRange} setDateRange={setDateRange} weather={weather} destinationId={destination.id} />
                 </div>
 
                 {/* Check In / Out Inputs restored */}
@@ -572,61 +650,65 @@ export default function PlanPage() {
             <div className="flex flex-col xl:flex-row gap-8 items-stretch h-auto xl:h-[600px] mb-20">
               
               {/* Left Side: Featured Activity Details */}
-              <div className="xl:w-[450px] shrink-0 bg-white/80 backdrop-blur-md rounded-[2.5rem] border border-slate-200 overflow-hidden shadow-xl flex flex-col relative">
-                {activeMapActivity && (
-                  <>
-                    <div className="h-64 sm:h-72 w-full relative shrink-0">
-                      <img src={activeMapActivity.thumb1} className="w-full h-full object-cover" alt="Featured Activity" />
-                      <div className="absolute inset-0 bg-gradient-to-t from-slate-900 via-slate-900/40 to-transparent"></div>
-                      <div className="absolute top-5 right-5 w-10 h-10 rounded-full bg-white/20 backdrop-blur-md flex items-center justify-center text-xl shadow-lg border border-white/30">
-                        {activeMapActivity.category === 'Adventure' ? '🛶' : activeMapActivity.category === 'Extreme' ? '🪂' : activeMapActivity.category === 'Wellness' ? '🧘' : activeMapActivity.category === 'Culture' ? '🪔' : '⛺'}
-                      </div>
-                      <div className="absolute bottom-5 left-6 right-6">
-                        <span className="px-3 py-1 bg-orange-500 text-white text-[9px] font-bold tracking-widest uppercase rounded-full mb-2 inline-block shadow-md">
-                          {activeMapActivity.category}
-                        </span>
-                        <h3 className="font-display font-bold text-3xl text-white leading-tight">{activeMapActivity.name}</h3>
-                      </div>
+              {activeMapActivity ? (
+                <div className="xl:w-[450px] shrink-0 bg-white/80 backdrop-blur-md rounded-[2.5rem] border border-slate-200 overflow-hidden shadow-xl flex flex-col relative animate-in fade-in duration-300">
+                  <div className="h-64 sm:h-72 w-full relative shrink-0">
+                    <img src={activeMapActivity.image} className="w-full h-full object-cover" alt="Featured Activity" />
+                    <div className="absolute inset-0 bg-gradient-to-t from-slate-900 via-slate-900/40 to-transparent"></div>
+                    <div className="absolute top-5 right-5 w-10 h-10 rounded-full bg-white/20 backdrop-blur-md flex items-center justify-center text-xl shadow-lg border border-white/30">
+                      {activeMapActivity.category === 'Adventure' ? '🛶' : activeMapActivity.category === 'Extreme' ? '🪂' : activeMapActivity.category === 'Wellness' ? '🧘' : activeMapActivity.category === 'Culture' ? '🪔' : '⛺'}
                     </div>
+                    <div className="absolute bottom-5 left-6 right-6">
+                      <span className="px-3 py-1 bg-orange-500 text-white text-[9px] font-bold tracking-widest uppercase rounded-full mb-2 inline-block shadow-md">
+                        {activeMapActivity.category}
+                      </span>
+                      <h3 className="font-display font-bold text-3xl text-white leading-tight">{activeMapActivity.name}</h3>
+                    </div>
+                  </div>
+                  
+                  <div className="p-8 flex flex-col flex-1">
+                    <p className="text-slate-600 font-medium text-lg italic mb-8 leading-relaxed flex-1">"{activeMapActivity.shortDesc}"</p>
                     
-                    <div className="p-8 flex flex-col flex-1">
-                      <p className="text-slate-600 font-medium text-lg italic mb-8 leading-relaxed flex-1">"{activeMapActivity.shortDesc}"</p>
-                      
-                      <div className="grid grid-cols-2 gap-4 mb-8">
-                        <div className="bg-slate-50 border border-slate-100 rounded-2xl p-4 flex items-center gap-3">
-                          <div className="w-8 h-8 rounded-full bg-slate-200 flex items-center justify-center text-slate-500 text-sm">⏱️</div>
-                          <div>
-                            <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Duration</p>
-                            <p className="font-bold text-slate-800 text-sm">{activeMapActivity.duration}</p>
-                          </div>
-                        </div>
-                        <div className="bg-slate-50 border border-slate-100 rounded-2xl p-4 flex items-center gap-3">
-                          <div className="w-8 h-8 rounded-full bg-slate-200 flex items-center justify-center text-slate-500 text-sm">💰</div>
-                          <div>
-                            <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Price</p>
-                            <p className="font-bold text-slate-800 text-sm">₹{activeMapActivity.price} <span className="text-[10px] text-slate-500">pp</span></p>
-                          </div>
+                    <div className="grid grid-cols-2 gap-4 mb-8">
+                      <div className="bg-slate-50 border border-slate-100 rounded-2xl p-4 flex items-center gap-3">
+                        <div className="w-8 h-8 rounded-full bg-slate-200 flex items-center justify-center text-slate-500 text-sm">⏱️</div>
+                        <div>
+                          <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Duration</p>
+                          <p className="font-bold text-slate-800 text-sm">{activeMapActivity.duration}</p>
                         </div>
                       </div>
-
-                      <button 
-                        onClick={() => toggleActivity(activeMapActivity.id)}
-                        className={`w-full py-5 rounded-2xl font-bold uppercase tracking-widest text-[11px] transition-all flex items-center justify-center gap-3 shadow-md border-2 ${
-                          selectedActivities.includes(activeMapActivity.id) 
-                            ? 'bg-slate-100 text-slate-600 border-slate-200 hover:bg-slate-200' 
-                            : 'bg-orange-500 text-white border-orange-500 hover:bg-orange-600 hover:shadow-lg hover:-translate-y-1'
-                        }`}
-                      >
-                        {selectedActivities.includes(activeMapActivity.id) ? (
-                          <> <Check size={16} /> Added to Trip </>
-                        ) : (
-                          <> <Plus size={16} /> Add to Trip </>
-                        )}
-                      </button>
+                      <div className="bg-slate-50 border border-slate-100 rounded-2xl p-4 flex items-center gap-3">
+                        <div className="w-8 h-8 rounded-full bg-slate-200 flex items-center justify-center text-slate-500 text-sm">💰</div>
+                        <div>
+                          <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Price</p>
+                          <p className="font-bold text-slate-800 text-sm">₹{activeMapActivity.price} <span className="text-[10px] text-slate-500">pp</span></p>
+                        </div>
+                      </div>
                     </div>
-                  </>
-                )}
-              </div>
+
+                    <button 
+                      onClick={() => toggleActivity(activeMapActivity.id)}
+                      className={`w-full py-5 rounded-2xl font-bold uppercase tracking-widest text-[11px] transition-all flex items-center justify-center gap-3 shadow-md border-2 ${
+                        selectedActivities.includes(activeMapActivity.id) 
+                          ? 'bg-slate-100 text-slate-600 border-slate-200 hover:bg-slate-200' 
+                          : 'bg-orange-500 text-white border-orange-500 hover:bg-orange-600 hover:shadow-lg hover:-translate-y-1'
+                      }`}
+                    >
+                      {selectedActivities.includes(activeMapActivity.id) ? (
+                        <> <Check size={16} /> Added to Trip </>
+                      ) : (
+                        <> <Plus size={16} /> Add to Trip </>
+                      )}
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <div className="xl:w-[450px] shrink-0 bg-slate-50/50 backdrop-blur-sm rounded-[2.5rem] border-2 border-dashed border-slate-200 flex flex-col items-center justify-center p-8 text-center shadow-inner">
+                  <div className="w-16 h-16 bg-slate-200 rounded-full flex items-center justify-center text-2xl mb-4 text-slate-400">📍</div>
+                  <h3 className="font-display font-bold text-xl text-slate-700 mb-2">Select an Activity</h3>
+                  <p className="text-slate-500 font-medium text-sm">Click on any of the interactive pins on the map to view detailed information and add experiences to your itinerary.</p>
+                </div>
+              )}
 
               {/* Right Side: Interactive Map */}
               <div className="flex-1 bg-white rounded-[2.5rem] border border-slate-200 overflow-hidden relative min-h-[500px] xl:min-h-0 shadow-inner group">
@@ -730,7 +812,7 @@ export default function PlanPage() {
               <X size={20} />
             </button>
             <div className="h-64 sm:h-80 w-full relative">
-              <img src={selectedModalActivity.thumb1} className="w-full h-full object-cover" alt="Activity Modal Cover" />
+              <img src={selectedModalActivity.image} className="w-full h-full object-cover" alt="Activity Modal Cover" />
               <div className="absolute inset-0 bg-gradient-to-t from-slate-900/90 to-transparent"></div>
               <div className="absolute bottom-6 left-6 right-6">
                 <span className="px-3 py-1 bg-orange-500 text-white text-[10px] font-bold tracking-widest uppercase rounded-md mb-3 inline-block shadow-md">

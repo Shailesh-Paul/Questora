@@ -1,11 +1,37 @@
 import React, { useState } from "react";
-import { Sun, Building2, Compass, Bike } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate, useLocation } from "react-router-dom";
+import { Sun, Building2, Compass, LogOut } from "lucide-react";
 import ListingModal from "./ListingModal";
+import useTripStore from "../store/tripStore";
 
 export default function Navbar({ scrolled }) {
   const navigate = useNavigate();
+  const location = useLocation();
   const [isModalOpen, setIsModalOpen] = useState(false);
+
+  const handleNavClick = (path, e) => {
+    if (path.startsWith("/#")) {
+      e.preventDefault();
+      const id = path.split("#")[1];
+      if (location.pathname === "/") {
+        document.getElementById(id)?.scrollIntoView({ behavior: "smooth" });
+      } else {
+        navigate("/");
+        setTimeout(() => {
+          document.getElementById(id)?.scrollIntoView({ behavior: "smooth" });
+        }, 100);
+      }
+    } else {
+      navigate(path);
+    }
+  };
+
+  const navItems = [
+    { name: "Destinations", path: "/#destinations" },
+    { name: "Homestays", path: "/#homestays" },
+    { name: "Rentals", path: "/rentals" },
+    { name: "Local Guides", path: "/#guides" },
+  ];
 
   return (
     <>
@@ -26,9 +52,9 @@ export default function Navbar({ scrolled }) {
         />
 
         <div className="relative max-w-7xl mx-auto px-6 flex items-center justify-between">
-          
+
           {/* Logo */}
-          <div className="flex items-center gap-3 cursor-pointer group" onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}>
+          <Link to="/" className="flex items-center gap-3 cursor-pointer group" onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}>
             <div
               className={`relative p-3 rounded-2xl overflow-hidden transition-all duration-500 ${
                 scrolled
@@ -58,44 +84,35 @@ export default function Navbar({ scrolled }) {
                 Escape Beyond
               </span>
             </div>
-          </div>
+          </Link>
 
           {/* Navigation Links */}
           <div className="hidden md:flex items-center gap-3">
-            {["Destinations", "Homestays", "Rentals", "Local Guides"].map(
-              (item) => (
-                <button
-                  key={item}
-                  onClick={() => {
-                    if (item === "Rentals") navigate("/rentals");
-                    else document.getElementById(item.toLowerCase().split(" ")[0])?.scrollIntoView({ behavior: "smooth" });
-                  }}
-                  className="
-                    relative px-5 py-2 rounded-full overflow-hidden
-                    text-sm font-medium text-white/90
-                    border border-transparent
-                    transition-all duration-500
-                    hover:text-white hover:border-white/20
-                    hover:bg-white/10 hover:backdrop-blur-xl
-                    hover:shadow-[0_0_20px_rgba(255,255,255,0.08)]
-                    group
-                  "
-                >
-                  {/* Translucent Hover Layer */}
-                  <span className="absolute inset-0 bg-gradient-to-r from-white/10 to-white/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500 rounded-full" />
-
-                  {/* Bottom Glow */}
-                  <span className="absolute bottom-0 left-1/2 h-[2px] w-0 bg-orange-400 transition-all duration-500 group-hover:w-10 group-hover:left-[calc(50%-20px)]" />
-
-                  <span className="relative z-10">{item}</span>
-                </button>
-              )
-            )}
+            {navItems.map((item) => (
+              <button
+                key={item.name}
+                onClick={(e) => handleNavClick(item.path, e)}
+                className="
+                  relative px-5 py-2 rounded-full overflow-hidden
+                  text-sm font-medium text-white/90
+                  border border-transparent
+                  transition-all duration-500
+                  hover:text-white hover:border-white/20
+                  hover:bg-white/10 hover:backdrop-blur-xl
+                  hover:shadow-[0_0_20px_rgba(255,255,255,0.08)]
+                  group
+                "
+              >
+                <span className="absolute inset-0 bg-gradient-to-r from-white/10 to-white/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500 rounded-full" />
+                <span className="absolute bottom-0 left-1/2 h-[2px] w-0 bg-orange-400 transition-all duration-500 group-hover:w-10 group-hover:left-[calc(50%-20px)]" />
+                <span className="relative z-10">{item.name}</span>
+              </button>
+            ))}
           </div>
 
           {/* Action Buttons */}
           <div className="flex items-center gap-4">
-            
+
             {/* List Property */}
             <button
               onClick={() => setIsModalOpen(true)}
@@ -157,13 +174,43 @@ export default function Navbar({ scrolled }) {
 
               <span className="relative z-10">Plan Weekend</span>
             </button>
+
+            {/* Logout Button (Conditional) */}
+            {localStorage.getItem("user") && (
+              <button
+                onClick={() => {
+                  localStorage.removeItem("user");
+                  useTripStore.getState().setPaid(false);
+                  useTripStore.getState().reset();
+                  navigate("/login");
+                }}
+                className="
+                  group relative overflow-hidden
+                  flex items-center gap-2
+                  font-semibold text-sm
+                  px-4 py-3 rounded-full
+                  border border-red-500/20
+                  text-red-400
+                  backdrop-blur-xl
+                  bg-red-500/5
+                  transition-all duration-500
+                  hover:bg-red-500/10
+                  hover:border-red-500/40
+                  hover:shadow-[0_0_30px_rgba(239,68,68,0.15)]
+                  hover:scale-105
+                "
+                title="Logout"
+              >
+                <LogOut size={16} className="relative z-10" />
+              </button>
+            )}
           </div>
         </div>
       </nav>
 
-      <ListingModal 
-        isOpen={isModalOpen} 
-        onClose={() => setIsModalOpen(false)} 
+      <ListingModal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
       />
     </>
   );

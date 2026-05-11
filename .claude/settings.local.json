@@ -32,7 +32,12 @@
       "Bash(taskkill //PID 29964 //F)",
       "Bash(taskkill //PID 9772 //F)",
       "Bash(taskkill //PID 12812 //F)",
-      "PowerShell(Invoke-WebRequest -Uri \"http://localhost:5001/health\" -Method GET | ConvertFrom-Json)"
+      "PowerShell(Invoke-WebRequest -Uri \"http://localhost:5001/health\" -Method GET | ConvertFrom-Json)",
+      "Bash(powershell *)",
+      "Bash(git remote *)",
+      "Bash(git fetch *)",
+      "Bash(git merge *)",
+      "Bash(git add *)"
     ]
   }
 }

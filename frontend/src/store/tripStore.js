@@ -55,6 +55,7 @@ const useTripStore = create(
         get().autoSaveTrip();
       },
 
+      // Nights
       nights: 0,
       setNights: (n) => {
         set({ nights: n });
@@ -91,7 +92,7 @@ const useTripStore = create(
       getTotalCost: () => {
         const { cart, selectedHotel, nights } = get();
         const activitiesCost = cart.reduce((sum, item) => sum + (item.price || 0), 0);
-        const hotelCost = selectedHotel ? (selectedHotel.price || 0) * nights : 0;
+        const hotelCost = selectedHotel ? (selectedHotel.price || 0) * (nights || 1) : 0;
         return activitiesCost + hotelCost;
       },
 
@@ -129,7 +130,7 @@ const useTripStore = create(
         const totalBudget = budgetType === "total" ? budget : budget * members;
         const perPersonBudget = budgetType === "per_person" ? budget : Math.round(budget / members);
         const activitiesCost = cart.reduce((sum, item) => sum + (item.price || 0), 0);
-        const hotelCost = selectedHotel ? (selectedHotel.price || 0) * nights : 0;
+        const hotelCost = selectedHotel ? (selectedHotel.price || 0) * (nights || 1) : 0;
         const grandTotal = activitiesCost + hotelCost;
 
         try {
@@ -169,6 +170,10 @@ const useTripStore = create(
           console.error('Auto-save failed:', error);
         }
       },
+
+      // Payment state
+      isPaid: false,
+      setPaid: (val) => set({ isPaid: val }),
 
       // Reset
       reset: () =>

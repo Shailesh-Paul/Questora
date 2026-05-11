@@ -1,19 +1,26 @@
 import React, { useState } from "react";
-import { ArrowRight, Sparkles } from "lucide-react";
+import { ArrowRight, Sparkles, Search } from "lucide-react";
 import { DESTINATIONS } from "../lib/api";
 
 export default function DestinationGrid({ onSelect }) {
   const [searchQuery, setSearchQuery] = useState("");
   const [showDropdown, setShowDropdown] = useState(false);
+  const [activeIndex, setActiveIndex] = useState(-1);
 
-  const filteredDestinations = DESTINATIONS.filter(d => 
-    d.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
+  const filteredDestinations = DESTINATIONS.filter(d =>
+    d.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
     d.state.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   const handleCustomSearch = () => {
     if (!searchQuery.trim()) return;
-    
+
+    // If active index is valid, select that one instead
+    if (activeIndex >= 0 && activeIndex < filteredDestinations.length) {
+      onSelect(filteredDestinations[activeIndex]);
+      return;
+    }
+
     // Check if exact match
     const exactMatch = DESTINATIONS.find(d => d.name.toLowerCase() === searchQuery.toLowerCase());
     if (exactMatch) {
@@ -33,6 +40,36 @@ export default function DestinationGrid({ onSelect }) {
       trendingScore: 90
     };
     onSelect(customDest);
+  };
+
+  const handleKeyDown = (e) => {
+    if (e.key === "ArrowDown") {
+      e.preventDefault();
+      setActiveIndex(prev => (prev < filteredDestinations.length - 1 ? prev + 1 : prev));
+    } else if (e.key === "ArrowUp") {
+      e.preventDefault();
+      setActiveIndex(prev => (prev > 0 ? prev - 1 : -1));
+    } else if (e.key === "Enter") {
+      handleCustomSearch();
+    } else if (e.key === "Escape") {
+      setShowDropdown(false);
+    }
+  };
+
+  const highlightMatch = (text, query) => {
+    if (!query) return text;
+    const parts = text.split(new RegExp(`(${query})`, "gi"));
+    return (
+      <span>
+        {parts.map((part, i) =>
+          part.toLowerCase() === query.toLowerCase() ? (
+            <span key={i} className="text-orange-400 font-black">{part}</span>
+          ) : (
+            part
+          )
+        )}
+      </span>
+    );
   };
 
   const getCrowdStyles = (level) => {
@@ -112,12 +149,11 @@ export default function DestinationGrid({ onSelect }) {
                 onChange={(e) => {
                   setSearchQuery(e.target.value);
                   setShowDropdown(true);
+                  setActiveIndex(-1);
                 }}
                 onFocus={() => setShowDropdown(true)}
                 onBlur={() => setTimeout(() => setShowDropdown(false), 200)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") handleCustomSearch();
-                }}
+                onKeyDown={handleKeyDown}
               />
               <button
                 onClick={handleCustomSearch}
@@ -126,27 +162,34 @@ export default function DestinationGrid({ onSelect }) {
                 Plan
               </button>
             </div>
-            
+
             {showDropdown && searchQuery && (
               <div className="absolute top-full left-0 right-0 mt-3 bg-slate-900/90 backdrop-blur-2xl rounded-2xl border border-white/10 overflow-hidden z-30 max-h-80 overflow-y-auto shadow-2xl">
                 {filteredDestinations.length > 0 ? (
-                  filteredDestinations.map(dest => (
-                    <div 
+                  filteredDestinations.map((dest, idx) => (
+                    <div
                       key={dest.id}
                       onClick={() => onSelect(dest)}
-                      className="px-5 py-4 hover:bg-white/10 cursor-pointer flex items-center gap-4 border-b border-white/5 last:border-0 group transition-colors"
+                      className={`px-5 py-4 hover:bg-white/10 cursor-pointer flex items-center justify-between border-b border-white/5 last:border-0 group transition-colors ${activeIndex === idx ? 'bg-white/10' : ''}`}
                     >
-                      <div className="w-10 h-10 rounded-lg overflow-hidden shrink-0 shadow-sm">
-                        <img src={dest.image} alt={dest.name} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
+                      <div className="flex items-center gap-4">
+                        <div className="w-10 h-10 rounded-lg overflow-hidden shrink-0 shadow-sm">
+                          <img src={dest.image} alt={dest.name} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
+                        </div>
+                        <div>
+                          <p className={`font-bold transition-colors ${activeIndex === idx ? 'text-orange-400' : 'text-white group-hover:text-orange-400'}`}>
+                            {highlightMatch(dest.name, searchQuery)}
+                          </p>
+                          <p className="text-[10px] text-white/40 font-medium uppercase tracking-wider">
+                            {highlightMatch(dest.state, searchQuery)}
+                          </p>
+                        </div>
                       </div>
-                      <div>
-                        <p className="font-bold text-white text-sm group-hover:text-orange-400 transition-colors">{dest.name}</p>
-                        <p className="text-[10px] text-white/40 font-medium uppercase tracking-wider">{dest.state}</p>
-                      </div>
+                      <ArrowRight size={14} className={`transition-all ${activeIndex === idx ? 'text-orange-400 translate-x-1' : 'text-white/20 group-hover:text-orange-400 group-hover:translate-x-1'}`} />
                     </div>
                   ))
                 ) : (
-                  <div 
+                  <div
                     onClick={handleCustomSearch}
                     className="px-5 py-6 text-center cursor-pointer hover:bg-white/10 transition-colors"
                   >
@@ -176,7 +219,7 @@ export default function DestinationGrid({ onSelect }) {
                     className="w-full h-full object-cover transition-transform duration-[2000ms] group-hover:scale-110"
                   />
                   <div className="absolute inset-0 bg-gradient-to-t from-black/95 via-black/20 to-transparent" />
-                  
+
                   {/* CROWD BADGE */}
                   <div className={`absolute top-6 right-6 flex items-center gap-2 px-4 py-2 rounded-full border backdrop-blur-xl text-[10px] font-bold uppercase tracking-widest ${crowd.badge}`}>
                     <span className={`w-2 h-2 rounded-full animate-pulse ${crowd.dot}`} />

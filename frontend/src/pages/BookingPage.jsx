@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import useTripStore from "../store/tripStore";
 import toast from "react-hot-toast";
 import { ArrowLeft, CreditCard, CheckCircle, ShieldCheck } from "lucide-react";
+import { API_BASE_URL, WHATSAPP_ASSISTANT_URL } from "../config";
 
 const loadRazorpayScript = () => {
   return new Promise((resolve) => {
@@ -14,26 +15,15 @@ const loadRazorpayScript = () => {
   });
 };
 
-const WHATSAPP_ASSISTANT_URL = 'http://localhost:5001';
-
 export default function BookingPage() {
   const navigate = useNavigate();
-  const {
-    cart,
-    selectedHotel,
-    members,
-    destination,
-    sessionId,
-    nights,
-    autoSaveTrip,
-    tripName,
-    dateRange,
-    reset
-  } = useTripStore();
-
+  const { cart, selectedHotel, members, destination, reset, dateRange, setPaid, sessionId, autoSaveTrip } = useTripStore();
   const [isProcessing, setIsProcessing] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
 
+  const nights = dateRange.start && dateRange.end
+    ? Math.max(1, Math.ceil((new Date(dateRange.end) - new Date(dateRange.start)) / (1000 * 60 * 60 * 24)))
+    : 2;
   const totalCost = cart.reduce((sum, i) => sum + i.price, 0) + (selectedHotel ? selectedHotel.price * nights : 0);
 
   useEffect(() => {
@@ -42,53 +32,9 @@ export default function BookingPage() {
     }
   }, [destination, navigate]);
 
-  // Send WhatsApp message immediately when user clicks Pay
-  const sendWhatsAppNow = async () => {
-    try {
-      // First save trip to tripplans
-      await autoSaveTrip();
-
-      // Then initialize trip in WhatsApp assistant
-      const response = await fetch(`${WHATSAPP_ASSISTANT_URL}/api/v1/trips/initialize`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          user_name: "Traveler",
-          phone_number: "918871715345", // User's WhatsApp number with country code
-          destination: destination?.name,
-          check_in_date: dateRange?.start,
-          check_out_date: dateRange?.end,
-          hotel: selectedHotel ? {
-            name: selectedHotel.name,
-            lat: selectedHotel.lat || 31.5,
-            lng: selectedHotel.lng || 77.1
-          } : null,
-          budget_total: totalCost + 10000, // Estimated total
-          activities: cart.map(item => ({
-            name: item.name,
-            price: item.price,
-            category: item.category || 'Activity'
-          })),
-          total_activities_cost: cart.reduce((sum, i) => sum + i.price, 0),
-          total_hotel_cost: selectedHotel ? selectedHotel.price * nights : 0,
-          grand_total: totalCost,
-          members: members
-        })
-      });
-
-      const data = await response.json();
-      if (data.success) {
-        console.log('WhatsApp assistant initialized!');
-        toast.success('WhatsApp message sent! Check your WhatsApp.');
-      }
-    } catch (error) {
-      console.error('WhatsApp error:', error);
-    }
-  };
-
   const updatePaymentStatus = async (paymentId, orderId, status) => {
     try {
-      await fetch(`${process.env.REACT_APP_BACKEND_URL || 'http://localhost:5000'}/api/tripplans/payment-status`, {
+      await fetch(`${API_BASE_URL}/tripplans/payment-status`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -106,80 +52,83 @@ export default function BookingPage() {
   const handlePayment = async () => {
     setIsProcessing(true);
 
-    // Send WhatsApp message IMMEDIATELY when user clicks Pay
-    await sendWhatsAppNow();
-
-    // DUMMY PAYMENT - Simulate successful payment (remove in production)
-    setTimeout(() => {
-      toast.success("Payment Successful!");
-      setIsSuccess(true);
-      updatePaymentStatus('dummy_payment_' + Date.now(), 'dummy_order_' + Date.now(), 'completed');
-      setIsProcessing(false);
-    }, 2000);
-
-    return; // Skip actual Razorpay for testing
-
-    const res = await loadRazorpayScript();
-
-    if (!res) {
-      toast.error("Razorpay SDK failed to load. Are you online?");
-      setIsProcessing(false);
-      return;
-    }
-
     try {
-      // Create order from backend
-      const orderResponse = await fetch("http://localhost:5000/api/create-order", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ amount: totalCost }),
-      });
+      // Auto-save trip first
+      await autoSaveTrip();
 
-      if (!orderResponse.ok) {
-        throw new Error("Failed to create order");
+      // 1. Compile items for booking
+      const bookingItems = [...cart];
+      if (selectedHotel) {
+        bookingItems.push({ ...selectedHotel, type: 'hotel' });
       }
 
-      const orderData = await orderResponse.json();
+      const userData = JSON.parse(localStorage.getItem("user"));
+      let userPhone = userData?.phoneNumber || "911234567890";
 
-      const options = {
-        key: "rzp_test_SnQQo0BjlwDtYq",
-        amount: orderData.amount,
-        currency: orderData.currency,
-        name: "Questora Travels",
-        description: `Trip to ${destination?.name}`,
-        image: destination?.image || "https://images.unsplash.com/photo-1626621341517-bbf3d9990a23?w=200",
-        order_id: orderData.id,
-        handler: async function (response) {
-          toast.success("Payment Successful!");
-          setIsSuccess(true);
+      // Ensure phone number has '+' prefix for Twilio WhatsApp
+      if (!userPhone.startsWith("+")) {
+        userPhone = "+" + userPhone;
+      }
 
-          // Update payment status in database
-          await updatePaymentStatus(
-            response.razorpay_payment_id,
-            response.razorpay_order_id,
-            'completed'
-          );
-        },
-        prefill: {
-          name: "Traveler",
-          email: "traveler@example.com",
-          contact: "9999999999",
-        },
-        theme: {
-          color: "#f97316",
-        },
-      };
-
-      const paymentObject = new window.Razorpay(options);
-
-      paymentObject.on("payment.failed", async function (response) {
-        toast.error("Payment failed. But don't worry - WhatsApp assistant is ready! You can still chat with AI.");
+      // 2. Record booking in main backend database
+      await fetch(`${API_BASE_URL}/bookings`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          items: bookingItems,
+          destinationId: destination.id,
+          startDate: dateRange.start || new Date().toISOString(),
+          endDate: dateRange.end || new Date(Date.now() + 86400000 * 2).toISOString(),
+          quantity: members,
+          userPhoneNumber: userPhone
+        })
       });
 
-      paymentObject.open();
+      // 3. Initialize WhatsApp Assistant (Sends actual WhatsApp message immediately)
+      try {
+        const response = await fetch(`${WHATSAPP_ASSISTANT_URL}/api/v1/trips/initialize`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            user_name: userData?.name || userData?.phoneNumber || 'Traveler',
+            phone_number: userPhone,
+            destination: destination.name,
+            check_in_date: dateRange.start || new Date().toISOString(),
+            check_out_date: dateRange.end || new Date(Date.now() + 86400000 * 2).toISOString(),
+            hotel: selectedHotel ? {
+              name: selectedHotel.name,
+              lat: selectedHotel.lat || 31.5,
+              lng: selectedHotel.lng || 77.1
+            } : null,
+            budget_total: totalCost,
+            activities: cart,
+            total_activities_cost: cart.reduce((sum, i) => sum + (i.price || 0), 0),
+            total_hotel_cost: selectedHotel ? selectedHotel.price * nights : 0,
+            grand_total: totalCost,
+            members: members
+          })
+        });
+
+        const data = await response.json();
+        if (data.success) {
+          console.log('WhatsApp assistant initialized!');
+          toast.success('WhatsApp message sent! Check your WhatsApp.');
+        }
+      } catch (wsErr) {
+        console.error("WhatsApp Assistant Init Error:", wsErr);
+      }
+
+      // 4. Simulate payment success for demo (in production, use Razorpay)
+      setTimeout(() => {
+        setPaid(true);
+        setIsSuccess(true);
+        updatePaymentStatus('payment_' + Date.now(), 'order_' + Date.now(), 'completed');
+        toast.success("Payment Successful! Confirmation sent to WhatsApp.");
+      }, 1500);
+
     } catch (error) {
-      toast.error("Something went wrong with the payment gateway.");
-      console.error(error);
+      console.error("Payment Process Error:", error);
+      toast.error("Something went wrong. Please try again.");
     } finally {
       setIsProcessing(false);
     }
@@ -188,23 +137,82 @@ export default function BookingPage() {
   if (isSuccess) {
     return (
       <div className="min-h-screen bg-slate-50 flex items-center justify-center p-6 font-body">
-        <div className="bg-white rounded-3xl shadow-xl p-10 max-w-md w-full text-center border border-slate-100">
-          <div className="w-20 h-20 bg-emerald-100 text-emerald-500 rounded-full flex items-center justify-center mx-auto mb-6">
-            <CheckCircle size={40} />
+        <div className="bg-white rounded-[2.5rem] shadow-2xl p-8 md:p-12 max-w-2xl w-full border border-slate-100 relative overflow-hidden">
+          {/* Decorative background */}
+          <div className="absolute top-0 right-0 w-32 h-32 bg-orange-500/5 rounded-full -mr-16 -mt-16 blur-3xl" />
+
+          <div className="text-center mb-10">
+            <div className="w-20 h-20 bg-emerald-100 text-emerald-500 rounded-full flex items-center justify-center mx-auto mb-6 shadow-sm">
+              <CheckCircle size={44} />
+            </div>
+            <h1 className="font-display font-bold text-3xl md:text-4xl text-slate-900 mb-2">Booking Confirmed!</h1>
+            <p className="text-slate-500">Receipt ID: #QST-{Math.floor(100000 + Math.random() * 900000)}</p>
           </div>
-          <h1 className="font-display font-bold text-3xl text-slate-900 mb-2">Booking Confirmed!</h1>
-          <p className="text-slate-600 mb-8">
-            Your trip to <span className="font-bold">{destination?.name}</span> is successfully booked. We have sent the itinerary and tickets to your email.
+
+          <div className="bg-slate-50 rounded-3xl p-6 md:p-8 mb-8 border border-slate-100">
+            <h2 className="font-bold text-slate-400 text-xs uppercase tracking-widest mb-6">Order Summary</h2>
+
+            <div className="space-y-6">
+              {/* Destination & Hotel */}
+              <div className="flex justify-between items-start">
+                <div>
+                  <p className="font-bold text-lg text-slate-900">{destination?.name}</p>
+                  <p className="text-sm text-slate-500">{selectedHotel?.name || 'Standard Stay'}</p>
+                </div>
+                <div className="text-right">
+                  <p className="font-bold text-slate-900">₹{(selectedHotel?.price * nights || 0).toLocaleString("en-IN")}</p>
+                  <p className="text-xs text-slate-400">{nights} Nights</p>
+                </div>
+              </div>
+
+              {/* Activities */}
+              {cart.length > 0 && (
+                <div className="pt-4 border-t border-slate-200">
+                  <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-3">Activities</p>
+                  <div className="space-y-3">
+                    {cart.map((item, idx) => (
+                      <div key={idx} className="flex justify-between text-sm">
+                        <span className="text-slate-600 font-medium">• {item.name}</span>
+                        <span className="text-slate-900 font-bold">₹{item.price.toLocaleString("en-IN")}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Total */}
+              <div className="pt-6 border-t border-slate-300 flex justify-between items-center">
+                <p className="font-display font-bold text-xl text-slate-900">Total Paid</p>
+                <p className="font-display font-bold text-3xl text-orange-500">₹{totalCost.toLocaleString("en-IN")}</p>
+              </div>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <button
+              onClick={() => {
+                window.print();
+                toast.success("Downloading receipt...");
+              }}
+              className="flex items-center justify-center gap-3 bg-white border-2 border-slate-200 text-slate-700 font-bold py-4 rounded-2xl hover:bg-slate-50 transition-all active:scale-95 shadow-sm"
+            >
+              <ShieldCheck size={20} className="text-emerald-500" />
+              Download Receipt
+            </button>
+            <button
+              onClick={() => {
+                reset();
+                navigate("/");
+              }}
+              className="flex items-center justify-center gap-3 bg-slate-900 text-white font-bold py-4 rounded-2xl hover:bg-orange-500 transition-all active:scale-95 shadow-lg"
+            >
+              Back to Home
+            </button>
+          </div>
+
+          <p className="text-center text-xs text-slate-400 mt-8">
+            A copy of this receipt has been sent to your registered WhatsApp number.
           </p>
-          <button
-            onClick={() => {
-              reset();
-              navigate("/");
-            }}
-            className="w-full bg-slate-900 text-white font-bold py-4 rounded-xl hover:bg-orange-500 transition-colors"
-          >
-            Plan Another Trip
-          </button>
         </div>
       </div>
     );

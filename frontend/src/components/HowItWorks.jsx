@@ -27,44 +27,73 @@ export default function HowItWorks() {
     <section
       className="
         relative
-        py-16
-        bg-[#060816]
+        py-20
         overflow-hidden
+        text-white
       "
     >
-      {/* AMBIENT BACKGROUND */}
-      <div className="absolute top-0 left-0 w-96 h-96 bg-orange-500/10 blur-[140px]" />
-      <div className="absolute bottom-0 right-0 w-[26rem] h-[26rem] bg-cyan-500/10 blur-[150px]" />
+      {/* 4K TOURISM BACKGROUND */}
+      <div className="absolute inset-0 z-0">
+        <img
+          src="https://images.unsplash.com/photo-1501785888041-af3ef285b470?auto=format&fit=crop&w=2400&q=100"
+          alt="Tourism background"
+          className="
+            w-full
+            h-full
+            object-cover
+            scale-105
+          "
+        />
 
+        {/* DARK OVERLAY */}
+        <div className="absolute inset-0 bg-[#050816]/75" />
+
+        {/* CINEMATIC OVERLAY */}
+        <div className="absolute inset-0 bg-gradient-to-b from-black/50 via-[#050816]/60 to-[#050816]/85" />
+      </div>
+
+      {/* AMBIENT GLOW */}
+      <div className="absolute top-0 left-0 w-[30rem] h-[30rem] bg-orange-500/10 blur-[150px]" />
+
+      <div className="absolute bottom-0 right-0 w-[28rem] h-[28rem] bg-cyan-500/10 blur-[160px]" />
+
+      {/* CONTENT */}
       <div className="relative z-10 max-w-6xl mx-auto px-6">
 
-        {/* SECTION HEADER */}
-        <div className="text-center mb-12">
+        {/* HEADER */}
+        <div className="text-center mb-14">
+
+          {/* LABEL */}
           <span
             className="
-              inline-block
+              inline-flex
+              items-center
               px-4 py-2
               rounded-full
               border border-white/10
-              bg-white/[0.03]
-              text-white/45
-              text-[11px]
+              bg-white/[0.05]
+              backdrop-blur-xl
+              text-white/50
+              text-[10px]
               uppercase
-              tracking-[0.25em]
-              mb-5
+              tracking-[0.28em]
+              font-semibold
+              mb-6
             "
           >
             Simple Process
           </span>
 
+          {/* TITLE */}
           <h2
             className="
-              text-3xl
-              md:text-4xl
+              text-4xl
+              md:text-6xl
               font-black
               tracking-tight
-              text-[#ebe7e1]
-              mb-4
+              leading-[1]
+              text-[#f3eee8]
+              mb-6
             "
           >
             Plan Your Weekend
@@ -72,23 +101,25 @@ export default function HowItWorks() {
             In Minutes
           </h2>
 
+          {/* DESCRIPTION */}
           <p
             className="
               max-w-2xl
               mx-auto
-              text-white/45
               text-[15px]
+              md:text-lg
               leading-relaxed
+              text-[#d2cbc2]
             "
           >
             Discover destinations, connect with locals,
-            and build unforgettable travel experiences
+            and create unforgettable travel experiences
             without complicated booking flows.
           </p>
         </div>
 
-        {/* COMPACT LAYOUT */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+        {/* STEPS GRID */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
 
           {steps.map((step, i) => (
             <div
@@ -97,14 +128,16 @@ export default function HowItWorks() {
                 group
                 relative
                 overflow-hidden
-                rounded-3xl
+                rounded-[2rem]
                 border border-white/10
-                bg-white/[0.03]
+                bg-black/30
                 backdrop-blur-2xl
-                p-6
-                transition-all duration-500
-                hover:-translate-y-1
-                hover:bg-white/[0.05]
+                p-7
+                transition-all duration-700
+                hover:-translate-y-2
+                hover:bg-black/40
+                hover:border-white/20
+                hover:shadow-[0_25px_80px_rgba(0,0,0,0.45)]
               "
             >
               {/* HOVER GLOW */}
@@ -112,38 +145,43 @@ export default function HowItWorks() {
                 className="
                   absolute inset-0 opacity-0
                   group-hover:opacity-100
-                  transition-opacity duration-500
+                  transition-opacity duration-700
                   bg-gradient-to-br
                   from-orange-500/10
                   to-cyan-500/10
                 "
               />
 
-              {/* STEP NUMBER */}
+              {/* TOP ROW */}
               <div
                 className="
                   relative z-10
                   flex items-center justify-between
-                  mb-5
+                  mb-8
                 "
               >
+                {/* ICON */}
                 <div
                   className="
-                    w-10 h-10
-                    rounded-xl
+                    w-14 h-14
+                    rounded-2xl
                     flex items-center justify-center
-                    bg-orange-500/10
-                    border border-orange-400/20
+                    bg-white/[0.05]
+                    border border-white/10
+                    backdrop-blur-xl
                     text-orange-300
+                    transition-transform duration-500
+                    group-hover:scale-110
                   "
                 >
                   {step.icon}
                 </div>
 
+                {/* NUMBER */}
                 <span
                   className="
                     text-white/20
-                    text-xl
+                    text-2xl
                     font-black
                   "
                 >
@@ -155,26 +193,43 @@ export default function HowItWorks() {
               <h3
                 className="
                   relative z-10
-                  text-[#ebe7e1]
-                  text-lg
-                  font-semibold
-                  mb-2
+                  text-2xl
+                  font-bold
+                  tracking-tight
+                  text-[#f3eee8]
+                  mb-4
                 "
               >
                 {step.title}
               </h3>
 
-              {/* DESC */}
+              {/* DESCRIPTION */}
               <p
                 className="
                   relative z-10
-                  text-white/45
-                  text-sm
+                  text-[15px]
                   leading-relaxed
+                  text-[#d2cbc2]
                 "
               >
                 {step.desc}
               </p>
+
+              {/* BOTTOM LINE */}
+              <div
+                className="
+                  relative z-10
+                  mt-8
+                  h-[2px]
+                  w-14
+                  rounded-full
+                  bg-gradient-to-r
+                  from-orange-400
+                  to-transparent
+                  transition-all duration-700
+                  group-hover:w-28
+                "
+              />
             </div>
           ))}
         </div>

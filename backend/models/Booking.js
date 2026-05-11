@@ -1,17 +1,28 @@
 const mongoose = require('mongoose');
 
 const bookingSchema = new mongoose.Schema({
-  listingId: { type: mongoose.Schema.Types.ObjectId, ref: 'Listing', required: true },
-  ownerName: { type: String, required: true },
-  ownerContact: { type: String, required: true },
-  userName: { type: String, required: true },
-  userContact: { type: String, required: true },
-  amount: { type: Number, required: true },
-  duration: { type: Number, required: true },
-  durationType: { type: String, enum: ['hours', 'days'], required: true },
+  // Vehicle rental booking fields
+  listingId: { type: mongoose.Schema.Types.ObjectId, ref: 'Listing' },
+  ownerName: { type: String },
+  ownerContact: { type: String },
+  userName: { type: String },
+  userContact: { type: String },
+  amount: { type: Number },
+  duration: { type: Number },
+  durationType: { type: String, enum: ['hours', 'days'] },
   paymentStatus: { type: String, enum: ['pending', 'completed', 'failed'], default: 'pending' },
   razorpayOrderId: { type: String },
   razorpayPaymentId: { type: String },
+
+  // Hotel/Activity booking fields
+  itemId: { type: String },
+  type: { type: String },
+  destinationId: { type: String },
+  startDate: { type: Date },
+  endDate: { type: Date },
+  quantityBooked: { type: Number, default: 1 },
+  userPhoneNumber: { type: String },
+
   createdAt: { type: Date, default: Date.now }
 });
 
