@@ -2,11 +2,13 @@ const User = require('../models/User');
 const Trip = require('../models/Trip');
 const ItineraryItem = require('../models/ItineraryItem');
 const ExpenseLog = require('../models/ExpenseLog');
+const Conversation = require('../models/Conversation');
 const twilioService = require('../services/twilioService');
 const aiService = require('../services/aiService');
 const googlePlacesService = require('../services/googlePlacesService');
 const distanceService = require('../services/distanceService');
 const weatherService = require('../services/weatherService');
+const subscriptionService = require('../services/subscriptionService');
 
 class WebhookController {
   // Handle incoming WhatsApp messages
@@ -28,18 +30,22 @@ class WebhookController {
   }
 
   async processMessage(from, body, messageSid, profileName) {
-    // Find user and active trip
+    // Find user by phone
     const phone = from.replace('whatsapp:', '');
-    const user = await User.findOne({ phone_number: phone });
 
-    if (!user) {
-      await twilioService.sendWhatsAppMessage(
-        from,
-        `Hi! I don't recognize this number. Please book a trip through our website first: ${process.env.FRONTEND_URL}`
-      );
+    // Validate subscription FIRST - before any other checks
+    const validation = await subscriptionService.validateSubscription(phone);
+    if (!validation.valid) {
+      await twilioService.sendWhatsAppMessage(from, validation.message);
       return;
     }
 
+    const user = validation.user;
+
+    // Track message usage
+    await subscriptionService.trackMessageUsage(phone);
+
+    // Find active trip
     const trip = await Trip.findOne({
       user_id: user._id,
       status: { $in: ['UPCOMING', 'ACTIVE'] }
@@ -66,6 +72,9 @@ class WebhookController {
       console.log(`Duplicate message detected: ${messageSid}`);
       return;
     }
+
+    // Save message to conversation history
+    await this.saveConversationMessage(user._id, trip._id, 'user', body);
 
     // Classify intent
     const intent = await aiService.classifyIntent(body);
@@ -109,6 +118,43 @@ class WebhookController {
 
     // Send AI response via Twilio
     await twilioService.sendWhatsAppMessage(from, response);
+
+    // Save assistant response to conversation
+    await this.saveConversationMessage(user._id, trip._id, 'assistant', response);
+  }
+
+  // Save message to conversation history
+  async saveConversationMessage(userId, tripId, role, content, intent = null) {
+    try {
+      // Find active conversation or create new one
+      let conversation = await Conversation.findOne({
+        user_id: userId,
+        trip_id: tripId,
+        status: 'ACTIVE'
+      });
+
+      if (!conversation) {
+        conversation = await Conversation.create({
+          user_id: userId,
+          trip_id: tripId,
+          session_id: `session_${Date.now()}`,
+          status: 'ACTIVE',
+          messages: []
+        });
+      }
+
+      // Add message
+      conversation.messages.push({
+        role,
+        content,
+        intent,
+        created_at: new Date()
+      });
+      conversation.message_count += 1;
+      await conversation.save();
+    } catch (error) {
+      console.error('Error saving conversation message:', error);
+    }
   }
 
   async handleFindFood(trip, user, userMessage) {

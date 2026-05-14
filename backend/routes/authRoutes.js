@@ -15,10 +15,19 @@ const generateOTP = () => Math.floor(100000 + Math.random() * 900000).toString()
 
 // Route: Send OTP
 router.post('/send-otp', async (req, res) => {
-  const { phoneNumber } = req.body;
+  let { phoneNumber } = req.body;
 
-  if (!phoneNumber) {
-    return res.status(400).json({ error: 'Phone number is required' });
+  // Clean phone number - remove any non-digit characters except +
+  if (phoneNumber) {
+    phoneNumber = phoneNumber.replace(/[^\d+]/g, '');
+    // Ensure it starts with +
+    if (!phoneNumber.startsWith('+')) {
+      phoneNumber = '+' + phoneNumber;
+    }
+  }
+
+  if (!phoneNumber || phoneNumber.length < 10) {
+    return res.status(400).json({ error: 'Please enter a valid phone number' });
   }
 
   try {
@@ -43,21 +52,30 @@ router.post('/send-otp', async (req, res) => {
       res.json({ message: 'OTP sent successfully' });
     } else {
       // For development when keys are missing
-      res.json({ 
-        message: 'OTP generated (Dev Mode)', 
+      res.json({
+        message: 'OTP generated (Dev Mode)',
         otp: otp, // Sending back OTP only for dev mode if keys are missing
-        warning: 'Twilio keys missing, OTP logged to console.' 
+        warning: 'Twilio keys missing, OTP logged to console.'
       });
     }
   } catch (error) {
-    console.error('Send OTP Error:', error);
-    res.status(500).json({ error: 'Failed to send OTP' });
+    console.error('Send OTP Error:', error.message);
+    res.status(500).json({ error: error.message || 'Failed to send OTP' });
   }
 });
 
 // Route: Verify OTP
 router.post('/verify-otp', async (req, res) => {
-  const { phoneNumber, otp } = req.body;
+  let { phoneNumber, otp } = req.body;
+
+  // Clean phone number - remove any non-digit characters except +
+  if (phoneNumber) {
+    phoneNumber = phoneNumber.replace(/[^\d+]/g, '');
+    // Ensure it starts with +
+    if (!phoneNumber.startsWith('+')) {
+      phoneNumber = '+' + phoneNumber;
+    }
+  }
 
   if (!phoneNumber || !otp) {
     return res.status(400).json({ error: 'Phone number and OTP are required' });

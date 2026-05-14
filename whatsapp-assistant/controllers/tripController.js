@@ -3,6 +3,7 @@ const Trip = require('../models/Trip');
 const ItineraryItem = require('../models/ItineraryItem');
 const ExpenseLog = require('../models/ExpenseLog');
 const twilioService = require('../services/twilioService');
+const subscriptionService = require('../services/subscriptionService');
 
 class TripController {
   // Initialize a new trip from web platform after payment
@@ -141,6 +142,23 @@ class TripController {
         await Trip.findByIdAndUpdate(trip._id, { welcome_sent: true });
       }, 2000);
 
+      // Auto-activate subscription for the trip duration
+      try {
+        await subscriptionService.activateSubscription(phone_number, {
+          plan: 'TRIP_PACKAGE',
+          plan_name: 'Trip Package',
+          amount_paid: grand_total,
+          trip_id: trip._id,
+          destination: destination,
+          check_in_date: check_in_date,
+          check_out_date: check_out_date,
+          duration_days: tripDays + 1 // Add 1 extra day for buffer
+        });
+        console.log(`✅ Subscription auto-activated for trip to ${destination}`);
+      } catch (subError) {
+        console.error('Auto subscription activation failed:', subError.message);
+      }
+
       res.status(201).json({
         success: true,
         message: 'Trip initialized successfully',
@@ -149,7 +167,8 @@ class TripController {
           user_id: user._id,
           whatsapp_active: true,
           daily_limit: dailyLimit,
-          wallet_remaining: walletRemaining
+          wallet_remaining: walletRemaining,
+          subscription_activated: true
         }
       });
 

@@ -9,7 +9,6 @@ import ItineraryPage from "./pages/ItineraryPage";
 import RentalsPage from "./pages/RentalsPage";
 import BookingPage from "./pages/BookingPage";
 import ScrollToTop from "./components/ScrollToTop";
-import TravelAssistantIcon from "./components/TravelAssistantIcon";
 import WhatsAppAI from "./components/WhatsAppAI";
 import useTripStore from "./store/tripStore";
 import "./index.css";
@@ -60,7 +59,6 @@ export default function App() {
     <QueryClientProvider client={queryClient}>
       <BrowserRouter>
         <ScrollToTop />
-        <TravelAssistantIcon />
         <div className="grain">
           <CustomCursor />
           <Toaster

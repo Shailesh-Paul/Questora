@@ -38,7 +38,14 @@
       "Bash(git fetch *)",
       "Bash(git merge *)",
       "Bash(git add *)",
-      "Bash(git commit *)"
+      "Bash(git commit *)",
+      "Bash(npx eslint *)",
+      "Bash(PORT=3002 npm start)",
+      "Bash(dir C:\\\\Users\\\\Asus\\\\LAB-003-AI-AVENGERS\\\\whatsapp-assistant *)",
+      "Bash(findstr \"5001\")",
+      "Bash(dir *)",
+      "Bash(timeout *)",
+      "Bash(findstr \":5001 \")"
     ]
   }
 }

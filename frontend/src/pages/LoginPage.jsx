@@ -5,7 +5,8 @@ import { Phone, Lock, ArrowRight, ShieldCheck, RefreshCcw } from "lucide-react";
 import toast from "react-hot-toast";
 import axios from "axios";
 
-import { API_BASE_URL } from "../config";
+// Direct API URL - no config needed
+const API_URL = "http://localhost:5000/api";
 
 export default function LoginPage() {
   const [phoneNumber, setPhoneNumber] = useState("");
@@ -34,7 +35,7 @@ export default function LoginPage() {
 
     setIsLoading(true);
     try {
-      const response = await axios.post(`${API_BASE_URL}/auth/send-otp`, { phoneNumber });
+      const response = await axios.post(`${API_URL}/auth/send-otp`, { phoneNumber });
       toast.success(response.data.message || "OTP sent successfully!");
       setStep(2);
       setTimer(60);
@@ -60,7 +61,7 @@ export default function LoginPage() {
 
     setIsLoading(true);
     try {
-      const response = await axios.post(`${API_BASE_URL}/auth/verify-otp`, { phoneNumber, otp });
+      const response = await axios.post(`${API_URL}/auth/verify-otp`, { phoneNumber, otp });
       if (response.data.success) {
         toast.success("Welcome to WeekendWander!");
         localStorage.setItem("user", JSON.stringify(response.data.user));

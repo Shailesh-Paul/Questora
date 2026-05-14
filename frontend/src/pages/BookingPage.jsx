@@ -4,6 +4,7 @@ import useTripStore from "../store/tripStore";
 import toast from "react-hot-toast";
 import { ArrowLeft, CreditCard, CheckCircle, ShieldCheck } from "lucide-react";
 import { API_BASE_URL, WHATSAPP_ASSISTANT_URL } from "../config";
+import WhatsAppScanner from "../components/WhatsAppScanner";
 
 const loadRazorpayScript = () => {
   return new Promise((resolve) => {
@@ -94,6 +95,7 @@ export default function BookingPage() {
       });
 
       // 3. Initialize WhatsApp Assistant (Sends actual WhatsApp message immediately)
+      let tripData = null;
       try {
         const response = await fetch(`${WHATSAPP_ASSISTANT_URL}/api/v1/trips/initialize`, {
           method: "POST",
@@ -121,10 +123,39 @@ export default function BookingPage() {
         const data = await response.json();
         if (data.success) {
           console.log('WhatsApp assistant initialized!');
+          tripData = data.data;
           toast.success('WhatsApp message sent! Check your WhatsApp.');
         }
       } catch (wsErr) {
         console.error("WhatsApp Assistant Init Error:", wsErr);
+      }
+
+      // 4. Activate subscription for WhatsApp AI access
+      try {
+        const paymentId = 'payment_' + Date.now();
+        const orderId = 'order_' + Date.now();
+
+        await fetch(`${WHATSAPP_ASSISTANT_URL}/api/v1/trips/activate-subscription`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            phone_number: userPhone,
+            plan: 'TRIP_PACKAGE',
+            plan_name: 'Trip Package',
+            amount_paid: totalCost,
+            payment_id: paymentId,
+            razorpay_order_id: orderId,
+            razorpay_payment_id: paymentId,
+            trip_id: tripData?.trip_id,
+            destination: destination.name,
+            check_in_date: dateRange.start || new Date().toISOString(),
+            check_out_date: dateRange.end || new Date(Date.now() + 86400000 * 2).toISOString(),
+            duration_days: nights + 1
+          })
+        });
+        console.log('Subscription activated!');
+      } catch (subErr) {
+        console.error("Subscription Activation Error:", subErr);
       }
 
       // 4. Simulate payment success for demo (in production, use Razorpay)
@@ -149,6 +180,9 @@ export default function BookingPage() {
         <div className="bg-white rounded-[2.5rem] shadow-2xl p-8 md:p-12 max-w-2xl w-full border border-slate-100 relative overflow-hidden">
           {/* Decorative background */}
           <div className="absolute top-0 right-0 w-32 h-32 bg-orange-500/5 rounded-full -mr-16 -mt-16 blur-3xl" />
+
+          {/* WhatsApp Scanner Section */}
+          <WhatsAppScanner />
 
           <div className="text-center mb-10">
             <div className="w-20 h-20 bg-emerald-100 text-emerald-500 rounded-full flex items-center justify-center mx-auto mb-6 shadow-sm">

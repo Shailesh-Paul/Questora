@@ -171,13 +171,9 @@ export default function PlanPage() {
     selectedActivities,
     toggleActivity,
     cart,
-<<<<<<< HEAD
     addToCart,
     autoSaveTrip,
     nights
-=======
-    addToCart
->>>>>>> origin2/main
   } = useTripStore();
 
   const parseDateSafe = (d) => {
@@ -196,12 +192,8 @@ export default function PlanPage() {
   const [weather, setWeather] = useState(null);
   const [selectedModalActivity, setSelectedModalActivity] = useState(null);
   const [showBillModal, setShowBillModal] = useState(false);
-<<<<<<< HEAD
   const [activeMapActivity, setActiveMapActivity] = useState(MOCK_ACTIVITIES[0]);
   const [showSuccessToast, setShowSuccessToast] = useState(false);
-=======
-  const [activeMapActivity, setActiveMapActivity] = useState(null);
->>>>>>> origin2/main
 
   // Node positions for the map
   const mapPositions = [
@@ -247,9 +239,6 @@ export default function PlanPage() {
       toast.error("Please select travel dates.");
       return;
     }
-<<<<<<< HEAD
-    navigate(`/itinerary/${destination.name}`);
-=======
 
     // Sync selectedActivities to cart
     selectedActivities.forEach(id => {
@@ -259,8 +248,7 @@ export default function PlanPage() {
       }
     });
 
-    navigate(`/itinerary/${destination.id}`);
->>>>>>> origin2/main
+    navigate(`/itinerary/${destination.name}`);
   };
 
   useEffect(() => {

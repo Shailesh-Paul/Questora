@@ -3,8 +3,8 @@ import { MessageCircle, Send, X, Bot, ExternalLink, CheckCircle2, User } from "l
 import { motion, AnimatePresence } from "framer-motion";
 import useTripStore from "../store/tripStore";
 import toast from "react-hot-toast";
+import { WHATSAPP_NUMBER } from "../config";
 
-const WHATSAPP_NUMBER = "+14155238886";
 
 export default function WhatsAppAI() {
   const [isOpen, setIsOpen] = useState(false);
