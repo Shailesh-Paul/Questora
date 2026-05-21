@@ -1,13 +1,15 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import useTripStore from "../store/tripStore";
-import { DESTINATIONS, MOCK_ACTIVITIES, fetchWeather } from "../lib/api";
+import { DESTINATIONS, MOCK_ACTIVITIES, fetchWeather, fetchDestinations } from "../lib/api";
+import { mapDbToFrontendDestination } from "../utils/destination";
 import { ArrowLeft, ChevronDown, ChevronUp, Plus, Minus, Check, CheckCircle, CheckCircle2, X } from "lucide-react";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
 import toast from "react-hot-toast";
 import { format, differenceInDays, startOfMonth, endOfMonth, startOfWeek, endOfWeek, eachDayOfInterval, isSameMonth, isSameDay, isWithinInterval, isBefore, startOfDay, addDays, addMonths, subMonths } from "date-fns";
 import SuccessToast from "../components/SuccessToast";
+import { API_BASE_URL } from "../config";
 
 function CustomCalendar({ dateRange, setDateRange, weather, destinationId }) {
   const [currentMonth, setCurrentMonth] = useState(startOfMonth(new Date()));
@@ -27,7 +29,7 @@ function CustomCalendar({ dateRange, setDateRange, weather, destinationId }) {
       try {
         const startStr = startDate.toISOString();
         const endStr = endDate.toISOString();
-        const res = await fetch(`http://localhost:5000/api/availability?destinationId=${destinationId}&start=${startStr}&end=${endStr}`);
+        const res = await fetch(`${API_BASE_URL}/bookings/availability?destinationId=${destinationId}&start=${startStr}&end=${endStr}`);
         const data = await res.json();
         if (data.dailyTotals) {
           setAvailabilityData(data.dailyTotals);
@@ -188,6 +190,7 @@ export default function PlanPage() {
   };
 
   const [destDropdownOpen, setDestDropdownOpen] = useState(false);
+  const [dbDestinations, setDbDestinations] = useState([]);
   const [activityFilter, setActivityFilter] = useState("ALL");
   const [weather, setWeather] = useState(null);
   const [selectedModalActivity, setSelectedModalActivity] = useState(null);
@@ -210,12 +213,39 @@ export default function PlanPage() {
   }, []);
 
   useEffect(() => {
-    if (!destination && DESTINATIONS.length > 0) {
-      setDestination(DESTINATIONS[0]);
+    const loadDestinations = async () => {
+      try {
+        const data = await fetchDestinations();
+        const mapped = (data || []).map((d) =>
+          d.city ? mapDbToFrontendDestination(d) : d
+        );
+        if (mapped.length > 0) {
+          console.log(`[DEBUG] PlanPage: loaded ${mapped.length} destinations from API`);
+          setDbDestinations(mapped);
+        }
+      } catch (err) {
+        console.warn("[DEBUG] PlanPage: destination fetch failed, using static list");
+      }
+    };
+    loadDestinations();
+  }, []);
+
+  const planDestinations = dbDestinations.length > 0 ? dbDestinations : DESTINATIONS;
+
+  useEffect(() => {
+    if (!destination && planDestinations.length > 0) {
+      setDestination(planDestinations[0]);
     } else if (destination) {
       fetchWeather(destination.name).then(setWeather);
+      
+      // Auto set the active map activity to the first activity of this destination
+      const destId = destination.name?.toLowerCase()?.trim() || destination.id?.toLowerCase() || "goa";
+      const destActs = MOCK_ACTIVITIES.filter(a => a.destination && a.destination.toLowerCase() === destId);
+      if (destActs.length > 0) {
+        setActiveMapActivity(destActs[0]);
+      }
     }
-  }, [destination, setDestination]);
+  }, [destination, setDestination, dbDestinations]);
 
   const nightsLocal = dateRange.start && dateRange.end
     ? Math.max(1, differenceInDays(dateRange.end, dateRange.start))
@@ -310,7 +340,7 @@ export default function PlanPage() {
               {/* Header */}
               <div>
                 <p className="text-orange-600 font-bold text-xs tracking-[0.2em] mb-4 uppercase drop-shadow-sm">Configure your trip</p>
-                <h1 className="font-display text-5xl md:text-6xl font-bold text-slate-900 leading-tight mb-4 drop-shadow-sm">
+                <h1 className="font-display text-4xl sm:text-5xl md:text-6xl font-bold text-slate-900 leading-tight mb-4 drop-shadow-sm">
                   Tell us what you <br/> <span className="text-orange-500 italic pr-2">want.</span>
                 </h1>
                 <p className="text-slate-800 text-lg font-medium drop-shadow-sm">We'll take care of every detail.</p>
@@ -337,7 +367,7 @@ export default function PlanPage() {
                     onClick={() => setDestDropdownOpen(!destDropdownOpen)}
                   >
                     <div className="flex items-center gap-5">
-                      <img src={destination.image} alt={destination.name} className="w-20 h-14 object-cover rounded-xl shadow-sm" />
+                      <img src={destination.image} alt={destination.name} referrerPolicy="no-referrer" className="w-20 h-14 object-cover rounded-xl shadow-sm" />
                       <div>
                         <h3 className="font-display font-bold text-xl text-slate-900">{destination.name}</h3>
                         <p className="text-xs text-slate-500 font-medium mt-1">{destination.tagline} • {destination.state}</p>
@@ -348,7 +378,7 @@ export default function PlanPage() {
                   
                   {destDropdownOpen && (
                     <div className="border-t border-slate-100 max-h-[400px] overflow-y-auto bg-white/95">
-                      {DESTINATIONS.map((dest) => (
+                      {planDestinations.map((dest) => (
                         <div 
                           key={dest.id}
                           onClick={() => {
@@ -358,7 +388,7 @@ export default function PlanPage() {
                           className={`p-5 flex items-center justify-between cursor-pointer hover:bg-orange-50 transition-colors border-b border-slate-100 last:border-0 ${destination.id === dest.id ? 'bg-orange-50/50' : ''}`}
                         >
                           <div className="flex items-center gap-5">
-                            <img src={dest.image} alt={dest.name} className="w-16 h-12 object-cover rounded-lg shadow-sm" />
+                            <img src={dest.image} alt={dest.name} referrerPolicy="no-referrer" className="w-16 h-12 object-cover rounded-lg shadow-sm" />
                             <div>
                               <h3 className="font-bold text-slate-900">{dest.name}</h3>
                               <p className="text-xs text-slate-500 font-medium">{dest.state}</p>
@@ -563,7 +593,7 @@ export default function PlanPage() {
                 </div>
                 
                 <div className="rounded-2xl overflow-hidden mb-6 aspect-[4/3] relative shadow-inner">
-                  <img src={destination.image} alt={destination.name} className="w-full h-full object-cover hover:scale-105 transition-transform duration-700" />
+                  <img src={destination.image} alt={destination.name} referrerPolicy="no-referrer" className="w-full h-full object-cover hover:scale-105 transition-transform duration-700" />
                   <div className="absolute inset-0 bg-gradient-to-t from-slate-900/80 to-transparent"></div>
                   <div className="absolute bottom-4 left-4">
                     <h2 className="font-display font-bold text-3xl text-white mb-1 drop-shadow-md">{destination.name}</h2>
@@ -641,7 +671,7 @@ export default function PlanPage() {
               {activeMapActivity ? (
                 <div className="xl:w-[450px] shrink-0 bg-white/80 backdrop-blur-md rounded-[2.5rem] border border-slate-200 overflow-hidden shadow-xl flex flex-col relative animate-in fade-in duration-300">
                   <div className="h-64 sm:h-72 w-full relative shrink-0">
-                    <img src={activeMapActivity.image} className="w-full h-full object-cover" alt="Featured Activity" />
+                    <img src={activeMapActivity.image} referrerPolicy="no-referrer" className="w-full h-full object-cover" alt="Featured Activity" />
                     <div className="absolute inset-0 bg-gradient-to-t from-slate-900 via-slate-900/40 to-transparent"></div>
                     <div className="absolute top-5 right-5 w-10 h-10 rounded-full bg-white/20 backdrop-blur-md flex items-center justify-center text-xl shadow-lg border border-white/30">
                       {activeMapActivity.category === 'Adventure' ? '🛶' : activeMapActivity.category === 'Extreme' ? '🪂' : activeMapActivity.category === 'Wellness' ? '🧘' : activeMapActivity.category === 'Culture' ? '🪔' : '⛺'}
@@ -718,7 +748,7 @@ export default function PlanPage() {
 
                 {/* Activity Map Pins */}
                 <div className="absolute inset-0 z-10 pointer-events-none">
-                  {MOCK_ACTIVITIES.map((act, index) => {
+                  {MOCK_ACTIVITIES.filter(act => act.destination && act.destination.toLowerCase() === (destination?.id?.toLowerCase() || destination?.name?.toLowerCase()?.trim() || "goa")).map((act, index) => {
                     const isActive = activeMapActivity?.id === act.id;
                     const isSelected = selectedActivities.includes(act.id);
                     const pos = mapPositions[index % mapPositions.length];
@@ -800,7 +830,7 @@ export default function PlanPage() {
               <X size={20} />
             </button>
             <div className="h-64 sm:h-80 w-full relative">
-              <img src={selectedModalActivity.image} className="w-full h-full object-cover" alt="Activity Modal Cover" />
+              <img src={selectedModalActivity.image} referrerPolicy="no-referrer" className="w-full h-full object-cover" alt="Activity Modal Cover" />
               <div className="absolute inset-0 bg-gradient-to-t from-slate-900/90 to-transparent"></div>
               <div className="absolute bottom-6 left-6 right-6">
                 <span className="px-3 py-1 bg-orange-500 text-white text-[10px] font-bold tracking-widest uppercase rounded-md mb-3 inline-block shadow-md">

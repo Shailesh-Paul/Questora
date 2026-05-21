@@ -55,7 +55,7 @@ export default function Features() {
       {/* 4K TOURISM BACKGROUND */}
       <div className="absolute inset-0 z-0">
         <img
-          src="https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=2400&q=100"
+          src="https://images.pexels.com/photos/189349/pexels-photo-189349.jpeg?auto=compress&cs=tinysrgb&w=1920"
           alt="Luxury travel background"
           className="
             w-full

@@ -21,11 +21,42 @@ export default function BookingPage() {
   const { cart, selectedHotel, members, destination, reset, dateRange, setPaid, sessionId, autoSaveTrip } = useTripStore();
   const [isProcessing, setIsProcessing] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
+  const [showPhonePrompt, setShowPhonePrompt] = useState(false);
+  const [tempPhone, setTempPhone] = useState("");
+  const [travelers, setTravelers] = useState([]);
+  const [customRequirements, setCustomRequirements] = useState("");
+
+  useEffect(() => {
+    const num = Number(members) || 1;
+    setTravelers(prev => {
+      const arr = Array.from({ length: num }, (_, idx) => {
+        return prev[idx] || { name: "", age: "", aadhar: "" };
+      });
+      return arr;
+    });
+  }, [members]);
+
+  const handleTravelerChange = (idx, field, value) => {
+    setTravelers(prev => {
+      const next = [...prev];
+      next[idx] = { ...next[idx], [field]: value };
+      return next;
+    });
+  };
+
+  const isFormValid = () => {
+    if (travelers.length === 0) return false;
+    return travelers.every(t => t.name.trim() !== "" && t.aadhar.trim() !== "");
+  };
 
   const nights = dateRange.start && dateRange.end
     ? Math.max(1, Math.ceil((new Date(dateRange.end) - new Date(dateRange.start)) / (1000 * 60 * 60 * 24)))
     : 2;
-  const totalCost = cart.reduce((sum, i) => sum + i.price, 0) + (selectedHotel ? selectedHotel.price * nights : 0);
+  const totalActivitiesCost = cart.reduce((sum, i) => sum + i.price, 0);
+  const totalHotelCost = selectedHotel ? selectedHotel.price * nights : 0;
+  const advanceToPay = Math.round(totalActivitiesCost * 0.2);
+  const remainingToPay = totalActivitiesCost - advanceToPay;
+  const grandTotal = totalActivitiesCost + totalHotelCost;
 
   useEffect(() => {
     if (!destination) {
@@ -65,15 +96,14 @@ export default function BookingPage() {
 
       const userData = JSON.parse(localStorage.getItem("user"));
 
-      // Get user's phone number - require login for WhatsApp to work
-      if (!userData?.phoneNumber) {
-        toast.error("Please login with your WhatsApp number first!");
+      // Get user's phone number
+      let userPhone = userData?.phoneNumber || tempPhone;
+
+      if (!userPhone) {
+        setShowPhonePrompt(true);
         setIsProcessing(false);
-        navigate("/login");
         return;
       }
-
-      let userPhone = userData.phoneNumber;
 
       // Ensure phone number has '+' prefix for Twilio WhatsApp
       if (!userPhone.startsWith("+")) {
@@ -83,14 +113,26 @@ export default function BookingPage() {
       // 2. Record booking in main backend database
       await fetch(`${API_BASE_URL}/bookings`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { 
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${userData?.token}` 
+        },
         body: JSON.stringify({
           items: bookingItems,
           destinationId: destination.id,
           startDate: dateRange.start || new Date().toISOString(),
           endDate: dateRange.end || new Date(Date.now() + 86400000 * 2).toISOString(),
           quantity: members,
-          userPhoneNumber: userPhone
+          userPhoneNumber: userPhone,
+          customerName: travelers[0]?.name || "",
+          aadharNumber: travelers[0]?.aadhar || "",
+          age: travelers[0]?.age ? Number(travelers[0].age) : undefined,
+          customRequirements,
+          travelers: travelers.map(t => ({
+            name: t.name,
+            age: t.age ? Number(t.age) : undefined,
+            aadhar: t.aadhar
+          }))
         })
       });
 
@@ -111,11 +153,13 @@ export default function BookingPage() {
               lat: selectedHotel.lat || 31.5,
               lng: selectedHotel.lng || 77.1
             } : null,
-            budget_total: totalCost,
+            budget_total: grandTotal,
             activities: cart,
-            total_activities_cost: cart.reduce((sum, i) => sum + (i.price || 0), 0),
-            total_hotel_cost: selectedHotel ? selectedHotel.price * nights : 0,
-            grand_total: totalCost,
+            total_activities_cost: totalActivitiesCost,
+            total_hotel_cost: totalHotelCost,
+            advance_paid: advanceToPay,
+            remaining_amount: remainingToPay,
+            grand_total: grandTotal,
             members: members
           })
         });
@@ -142,7 +186,7 @@ export default function BookingPage() {
             phone_number: userPhone,
             plan: 'TRIP_PACKAGE',
             plan_name: 'Trip Package',
-            amount_paid: totalCost,
+            amount_paid: advanceToPay,
             payment_id: paymentId,
             razorpay_order_id: orderId,
             razorpay_payment_id: paymentId,
@@ -223,10 +267,30 @@ export default function BookingPage() {
                 </div>
               )}
 
-              {/* Total */}
-              <div className="pt-6 border-t border-slate-300 flex justify-between items-center">
-                <p className="font-display font-bold text-xl text-slate-900">Total Paid</p>
-                <p className="font-display font-bold text-3xl text-orange-500">₹{totalCost.toLocaleString("en-IN")}</p>
+              {/* Total Summary Split */}
+              <div className="pt-6 border-t border-slate-300 space-y-4">
+                <div className="flex justify-between items-center text-slate-500 text-sm">
+                  <p>Grand Total (Itinerary Value)</p>
+                  <p>₹{grandTotal.toLocaleString("en-IN")}</p>
+                </div>
+                
+                {selectedHotel && (
+                  <div className="flex justify-between items-center text-slate-500 text-sm">
+                    <p>Hotel Stay</p>
+                    <p>Booked Separately</p>
+                  </div>
+                )}
+                
+                <div className="flex justify-between items-center bg-orange-50/50 p-4 rounded-2xl border border-orange-100">
+                  <p className="font-display font-bold text-xl text-slate-900">Amount Paid (20% Advance)</p>
+                  <p className="font-display font-bold text-3xl text-orange-500">₹{advanceToPay.toLocaleString("en-IN")}</p>
+                </div>
+                
+                <div className="flex justify-between items-center px-4">
+                  <p className="font-bold text-sm text-slate-600">Remaining Amount</p>
+                  <p className="font-bold text-sm text-slate-900">₹{remainingToPay.toLocaleString("en-IN")}</p>
+                </div>
+                <p className="text-xs text-center text-slate-400 mt-2">*Remaining amount is to be paid directly to the local guides/vendors at the destination.</p>
               </div>
             </div>
           </div>
@@ -273,20 +337,121 @@ export default function BookingPage() {
           <p className="text-slate-500 font-medium">Complete your payment to confirm your trip to {destination?.name}.</p>
         </div>
 
+        {/* WhatsApp Phone Prompt Modal */}
+        {showPhonePrompt && (
+          <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
+            <div className="bg-white rounded-[2rem] shadow-2xl p-8 max-w-md w-full border border-slate-100">
+              <h3 className="font-display font-bold text-2xl mb-2 text-slate-900">WhatsApp Details</h3>
+              <p className="text-slate-500 text-sm mb-6">We need your WhatsApp number to send your booking receipt and activate your AI travel assistant.</p>
+              <div className="space-y-4">
+                <input 
+                  type="tel" 
+                  placeholder="+91 9876543210" 
+                  value={tempPhone}
+                  onChange={(e) => setTempPhone(e.target.value)}
+                  className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-all outline-none font-medium"
+                />
+                <div className="flex gap-3">
+                  <button onClick={() => setShowPhonePrompt(false)} className="flex-1 py-3 bg-slate-100 text-slate-600 font-bold rounded-xl hover:bg-slate-200 transition-colors">Cancel</button>
+                  <button 
+                    onClick={() => {
+                      if(tempPhone.length < 10) {
+                        toast.error("Please enter a valid phone number");
+                        return;
+                      }
+                      setShowPhonePrompt(false);
+                      handlePayment();
+                    }} 
+                    className="flex-1 py-3 bg-orange-500 text-white font-bold rounded-xl hover:bg-orange-600 transition-colors"
+                  >
+                    Continue
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
         <div className="grid grid-cols-1 md:grid-cols-5 gap-8">
-          {/* Order Summary */}
+          {/* Order Summary & Customer Details */}
           <div className="md:col-span-3 space-y-6">
+            
+            <div className="bg-white rounded-[2rem] shadow-sm border border-slate-200 p-8">
+              <h2 className="font-display font-bold text-2xl mb-6">Customer Details</h2>
+              <div className="space-y-6">
+                {travelers.map((traveler, idx) => (
+                  <div key={idx} className="pb-6 border-b border-slate-100 last:border-b-0 last:pb-0">
+                    <p className="font-display font-bold text-sm text-orange-500 uppercase tracking-wider mb-4">
+                      {idx === 0 ? "Traveler 1 (Primary Contact)" : `Traveler ${idx + 1}`}
+                    </p>
+                    <div className="space-y-4">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                          <label className="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-1">Full Name</label>
+                          <input 
+                            type="text" 
+                            value={traveler.name || ""} 
+                            onChange={e => handleTravelerChange(idx, "name", e.target.value)} 
+                            placeholder="John Doe" 
+                            className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-orange-500 outline-none font-medium text-slate-800" 
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-1">Age</label>
+                          <input 
+                            type="number" 
+                            value={traveler.age || ""} 
+                            onChange={e => handleTravelerChange(idx, "age", e.target.value)} 
+                            placeholder="25" 
+                            className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-orange-500 outline-none font-medium text-slate-800" 
+                          />
+                        </div>
+                      </div>
+                      <div>
+                        <label className="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-1">Aadhar Card Number</label>
+                        <input 
+                          type="text" 
+                          value={traveler.aadhar || ""} 
+                          onChange={e => handleTravelerChange(idx, "aadhar", e.target.value)} 
+                          placeholder="1234 5678 9012" 
+                          className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-orange-500 outline-none font-medium text-slate-800" 
+                        />
+                      </div>
+                    </div>
+                  </div>
+                ))}
+
+                <div className="pt-4 border-t border-slate-100">
+                  <label className="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-1">Custom Requirements / Notes</label>
+                  <textarea value={customRequirements} onChange={e => setCustomRequirements(e.target.value)} placeholder="Any specific dietary or accessibility needs?" rows="2" className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-orange-500 outline-none font-medium text-slate-800"></textarea>
+                </div>
+              </div>
+            </div>
             <div className="bg-white rounded-[2rem] shadow-sm border border-slate-200 p-8">
               <h2 className="font-display font-bold text-2xl mb-6">Order Summary</h2>
 
               {selectedHotel && (
-                <div className="flex items-center gap-4 mb-6 pb-6 border-b border-slate-100">
-                  <img src={selectedHotel.image} alt={selectedHotel.name} className="w-16 h-16 rounded-xl object-cover" />
-                  <div className="flex-1">
-                    <p className="font-bold text-slate-900">{selectedHotel.name}</p>
-                    <p className="text-xs text-slate-500 uppercase tracking-widest">{nights} nights stay</p>
+                <div className="mb-6 pb-6 border-b border-slate-100">
+                  <div className="flex justify-between items-start mb-4">
+                    <p className="text-sm font-bold text-slate-400 uppercase tracking-widest">Hotel Stay</p>
+                    <p className="text-xs font-bold bg-blue-50 text-blue-500 px-2 py-1 rounded">Excluded from Activity Checkout</p>
                   </div>
-                  <p className="font-bold text-lg">₹{(selectedHotel.price * nights).toLocaleString("en-IN")}</p>
+                  <div className="flex items-center gap-4">
+                    <img src={selectedHotel.image} alt={selectedHotel.name} className="w-16 h-16 rounded-xl object-cover" />
+                    <div className="flex-1">
+                      <p className="font-bold text-slate-900">{selectedHotel.name}</p>
+                      <p className="text-xs text-slate-500 uppercase tracking-widest">{nights} nights stay</p>
+                    </div>
+                    <div className="text-right">
+                      <p className="font-bold text-lg">₹{totalHotelCost.toLocaleString("en-IN")}</p>
+                    </div>
+                  </div>
+                  <button 
+                    onClick={() => window.open(selectedHotel.externalBookingLink || selectedHotel.externalBookingUrl || 'https://www.makemytrip.com', '_blank')}
+                    className="mt-4 w-full py-3 bg-slate-900 text-white font-bold rounded-xl hover:bg-slate-800 transition-colors text-sm"
+                  >
+                    Book Hotel via External Site ↗
+                  </button>
                 </div>
               )}
 
@@ -305,9 +470,18 @@ export default function BookingPage() {
                 </div>
               )}
 
-              <div className="flex items-center justify-between pt-2">
-                <p className="font-bold text-xl text-slate-900">Total Amount</p>
-                <p className="font-display font-bold text-3xl text-orange-500">₹{totalCost.toLocaleString("en-IN")}</p>
+              <div className="pt-2 space-y-3">
+                <div className="flex items-center justify-between text-slate-500">
+                  <p className="font-bold">Total Activities</p>
+                  <p className="font-bold">₹{totalActivitiesCost.toLocaleString("en-IN")}</p>
+                </div>
+                <div className="flex items-center justify-between bg-orange-50 p-4 rounded-xl border border-orange-100">
+                  <div>
+                    <p className="font-bold text-lg text-slate-900">20% Advance</p>
+                    <p className="text-xs text-slate-500 mt-1">Remaining ₹{remainingToPay.toLocaleString("en-IN")} due at destination</p>
+                  </div>
+                  <p className="font-display font-bold text-3xl text-orange-500">₹{advanceToPay.toLocaleString("en-IN")}</p>
+                </div>
               </div>
             </div>
           </div>
@@ -331,12 +505,12 @@ export default function BookingPage() {
 
               <button
                 onClick={handlePayment}
-                disabled={isProcessing || totalCost === 0}
+                disabled={isProcessing || totalActivitiesCost === 0 || !isFormValid()}
                 className="w-full bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-400 hover:to-orange-500 disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold tracking-wider text-sm uppercase py-4 rounded-xl transition-all shadow-lg flex justify-center items-center gap-3"
               >
                 {isProcessing ? "Processing..." : (
                   <>
-                    <CreditCard size={18} /> Pay ₹{totalCost.toLocaleString("en-IN")}
+                    <CreditCard size={18} /> Pay 20% Advance: ₹{advanceToPay.toLocaleString("en-IN")}
                   </>
                 )}
               </button>

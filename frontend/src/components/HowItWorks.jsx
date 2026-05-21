@@ -35,7 +35,7 @@ export default function HowItWorks() {
       {/* 4K TOURISM BACKGROUND */}
       <div className="absolute inset-0 z-0">
         <img
-          src="https://images.unsplash.com/photo-1501785888041-af3ef285b470?auto=format&fit=crop&w=2400&q=100"
+          src="https://images.pexels.com/photos/931018/pexels-photo-931018.jpeg?auto=compress&cs=tinysrgb&w=1920"
           alt="Tourism background"
           className="
             w-full

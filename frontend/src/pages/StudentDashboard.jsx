@@ -21,11 +21,23 @@ import { useAuth } from '../context/AuthContext';
 import axios from 'axios';
 import { API_BASE_URL } from '../config';
 import toast from 'react-hot-toast';
+import ExpenseManagement from './ExpenseManagement';
 
 const StudentDashboard = () => {
   const { user } = useAuth();
   const [bookings, setBookings] = useState([]);
+  const [recommendations, setRecommendations] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState('overview');
+  const [walletBalance, setWalletBalance] = useState(0);
+
+  // Filter bookings for Trip Receipts (Activities and Properties)
+  const itineraryBookings = bookings.filter(b => b.type === 'activity' || b.property);
+  
+  // Calculate dynamic expenses
+  const totalTravelSpend = itineraryBookings.reduce((sum, b) => sum + (b.price || b.estimatedPrice || 0), 0);
+  const budget = 25000; // Example budget
+  const budgetPercent = Math.min((totalTravelSpend / budget) * 100, 100);
   
   useEffect(() => {
     fetchBookings();
@@ -37,8 +49,24 @@ const StudentDashboard = () => {
         headers: { Authorization: `Bearer ${user.token}` }
       });
       setBookings(data);
+
+      // Fetch recommendations
+      const recRes = await axios.get(`${API_BASE_URL}/properties/recommended`, {
+        headers: { Authorization: `Bearer ${user.token}` }
+      });
+      setRecommendations(recRes.data.slice(0, 4)); // Get top 4
+
+      // Fetch Wallet Balance
+      try {
+        const walletRes = await axios.get(`${API_BASE_URL}/wallet`, {
+          headers: { Authorization: `Bearer ${user.token}` }
+        });
+        setWalletBalance(walletRes.data.balance || 0);
+      } catch (wErr) {
+        console.error('Failed to fetch wallet in student dashboard', wErr);
+      }
     } catch (error) {
-      console.error('Error fetching bookings', error);
+      console.error('Error fetching dashboard data', error);
     } finally {
       setLoading(false);
     }
@@ -93,105 +121,127 @@ const StudentDashboard = () => {
             <p className="text-slate-500 mt-2 font-medium">Manage your stays and tracking your student budget</p>
           </div>
           
-          <div className="flex items-center gap-4 bg-white p-2 rounded-2xl shadow-sm border border-slate-100">
-            <div className="size-12 bg-blue-100 rounded-xl flex items-center justify-center text-blue-600">
-              <Wallet className="size-6" />
+          <div className="flex flex-col md:flex-row items-start md:items-center gap-6">
+            <div className="flex gap-2 bg-slate-100 p-1.5 rounded-2xl border border-slate-200">
+              <button 
+                onClick={() => setActiveTab('overview')} 
+                className={`px-5 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider transition-all ${
+                  activeTab === 'overview' ? 'bg-white text-blue-600 shadow-md' : 'text-slate-500 hover:text-slate-900'
+                }`}
+              >
+                Overview & Tickets
+              </button>
+              <button 
+                onClick={() => setActiveTab('expenses')} 
+                className={`px-5 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider transition-all ${
+                  activeTab === 'expenses' ? 'bg-white text-blue-600 shadow-md' : 'text-slate-500 hover:text-slate-900'
+                }`}
+              >
+                AI Expense Ledger
+              </button>
             </div>
-            <div className="pr-4">
-              <p className="text-[10px] uppercase tracking-widest text-slate-400 font-bold">Current Balance</p>
-              <p className="text-xl font-black text-slate-900">₹14,250</p>
+
+            <div className="flex items-center gap-4 bg-white p-2 rounded-2xl shadow-sm border border-slate-100">
+              <div className="size-12 bg-blue-100 rounded-xl flex items-center justify-center text-blue-600">
+                <Wallet className="size-6" />
+              </div>
+              <div className="pr-4">
+                <p className="text-[10px] uppercase tracking-widest text-slate-400 font-bold">Virtual Wallet Balance</p>
+                <p className="text-xl font-black text-emerald-500">₹{walletBalance.toLocaleString("en-IN")}</p>
+              </div>
             </div>
           </div>
         </header>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          
-          {/* LEFT COL: BOOKING HISTORY */}
-          <div className="lg:col-span-2 space-y-8">
+        {activeTab === 'expenses' ? (
+          <ExpenseManagement />
+        ) : (
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            
+            {/* LEFT COL: BOOKING HISTORY */}
+            <div className="lg:col-span-2 space-y-8">
+
             <div className="flex items-center justify-between">
               <h2 className="text-2xl font-bold text-slate-900 flex items-center gap-3">
-                <History className="text-blue-500 size-6" /> Booking History
+                <History className="text-blue-500 size-6" /> Trip Receipts
               </h2>
             </div>
 
             {loading ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="grid grid-cols-1 gap-6">
                 {[1, 2].map(i => <div key={i} className="h-64 bg-slate-100 rounded-3xl animate-pulse" />)}
               </div>
-            ) : bookings.length > 0 ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {bookings.map((booking) => (
+            ) : itineraryBookings.length > 0 ? (
+              <div className="grid grid-cols-1 gap-6">
+                {itineraryBookings.map((booking) => (
                   <motion.div 
                     key={booking._id}
                     layout
-                    className="bg-white rounded-3xl overflow-hidden shadow-xl shadow-slate-200/50 border border-slate-100 flex flex-col"
+                    className="bg-white rounded-[2rem] overflow-hidden shadow-xl shadow-slate-200/50 border border-slate-100 relative group"
                   >
-                    <div className="relative h-48">
-                      <img src={booking.bookingType === 'rental' ? (booking.vehicle?.images?.[0] || 'https://images.unsplash.com/photo-1533473359331-0135ef1b58bf?w=600') : (booking.property?.images?.[0] || 'https://images.unsplash.com/photo-1555854877-bab0e564b8d5?w=600')} alt="Booking" className="w-full h-full object-cover" />
-                      <div className="absolute top-4 left-4 px-3 py-1 bg-white/90 backdrop-blur-md rounded-full text-[10px] font-black uppercase tracking-wider text-blue-600 shadow-sm">
-                        {booking.bookingType === 'rental' ? (booking.vehicle?.category || 'Vehicle') : (booking.property?.type || 'Stay')}
+                    {/* Receipt Tear Edge Effect */}
+                    <div className="absolute top-0 left-0 right-0 h-4 bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyMCIgaGVpZ2h0PSIyMCI+PGNpcmNsZSBjeD0iMTAiIGN5PSItMTAiIHI9IjEwIiBmaWxsPSIjZjhmOWZhIi8+PC9zdmc+')] z-10 opacity-50" />
+                    
+                    <div className="p-8 pb-6 border-b-2 border-dashed border-slate-200 flex flex-col md:flex-row gap-8 items-center">
+                      <div className="w-24 h-24 rounded-2xl overflow-hidden shrink-0 shadow-lg">
+                        <img src={booking.type === 'activity' ? 'https://images.pexels.com/photos/1032156/pexels-photo-1032156.jpeg?auto=compress&cs=tinysrgb&w=600' : (booking.property?.images?.[0] || 'https://images.pexels.com/photos/258154/pexels-photo-258154.jpeg?auto=compress&cs=tinysrgb&w=800')} alt="Booking" className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
                       </div>
-                      <div className={`absolute top-4 right-4 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider shadow-sm ${
-                        booking.status === 'confirmed' || booking.status === 'active' ? 'bg-green-500 text-white' : 
-                        booking.status === 'change_requested' ? 'bg-amber-500 text-white' : 'bg-slate-800 text-slate-300'
-                      }`}>
-                        {booking.status}
+                      <div className="flex-1 text-center md:text-left w-full">
+                        <div className="flex flex-col md:flex-row md:justify-between md:items-start gap-4">
+                          <div>
+                            <span className="inline-block px-3 py-1 bg-blue-50 text-blue-600 rounded-lg text-[10px] font-black uppercase tracking-widest mb-2">
+                              {booking.type === 'activity' ? 'Activity Booking' : 'Accommodation'}
+                            </span>
+                            <h3 className="text-2xl font-black text-slate-900 line-clamp-1">
+                              {booking.type === 'activity' ? booking.itemName : (booking.property?.title || 'External Booking')}
+                            </h3>
+                            <div className="flex items-center justify-center md:justify-start gap-2 text-slate-500 text-sm mt-2 font-medium capitalize">
+                              <MapPin size={16} className="text-slate-400" /> {booking.type === 'activity' ? booking.destinationId : booking.locationName || 'Travel Destination'}
+                            </div>
+                          </div>
+                          
+                          <div className="text-center md:text-right">
+                            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Total Paid</p>
+                            <p className="text-3xl font-black text-emerald-500">₹{(booking.price || booking.estimatedPrice || 0).toLocaleString("en-IN")}</p>
+                            <div className={`mt-2 inline-block px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider ${
+                              booking.status === 'confirmed' || booking.paymentStatus === 'completed' ? 'bg-emerald-50 text-emerald-600' : 'bg-amber-50 text-amber-600'
+                            }`}>
+                              {booking.paymentStatus === 'completed' && !booking.status ? 'Payment Confirmed' : (booking.status || 'Pending')}
+                            </div>
+                          </div>
+                        </div>
                       </div>
                     </div>
-                    <div className="p-6">
-                      <h3 className="text-lg font-bold text-slate-900 line-clamp-1">
-                        {booking.bookingType === 'rental' ? booking.vehicle?.name : (booking.property?.title || 'Unknown Stay')}
-                      </h3>
-                      <div className="flex items-center gap-2 text-slate-500 text-xs mt-2 font-medium">
-                        <MapPin size={14} className="text-blue-500" /> {booking.locationName}
-                      </div>
-                      <div className="flex items-center gap-2 text-slate-500 text-xs mt-1 font-medium">
-                        <Calendar size={14} className="text-blue-500" /> {new Date(booking.startDate).toLocaleDateString()} - {new Date(booking.endDate).toLocaleDateString()}
+                    
+                    <div className="p-8 bg-slate-50 flex flex-col md:flex-row gap-8 justify-between items-center">
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-6 w-full text-sm">
+                        <div>
+                          <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Customer</p>
+                          <p className="font-bold text-slate-900">{booking.customerName || booking.userId?.name || 'Unknown'}</p>
+                        </div>
+                        <div>
+                          <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Aadhar ID</p>
+                          <p className="font-bold text-slate-900">{booking.aadharNumber ? `****${booking.aadharNumber.slice(-4)}` : 'N/A'}</p>
+                        </div>
+                        <div>
+                          <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Travel Dates</p>
+                          <p className="font-bold text-slate-900">{new Date(booking.startDate).toLocaleDateString()} - {new Date(booking.endDate).toLocaleDateString()}</p>
+                        </div>
+                        <div>
+                          <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Requirements</p>
+                          <p className="font-bold text-slate-900 truncate">{booking.customRequirements || 'None'}</p>
+                        </div>
                       </div>
                       
-                      {booking.bookingType === 'rental' && booking.status !== 'active' && !booking.otpVerified && (
-                        <div className="mt-6 p-4 bg-orange-50 border border-orange-100 rounded-2xl">
-                          <p className="text-[10px] font-bold uppercase tracking-widest text-orange-600 mb-1">Pickup Verification OTP</p>
-                          <p className="text-3xl font-black text-slate-900 tracking-[0.2em]">{booking.otp}</p>
-                          <p className="text-[10px] text-slate-400 mt-2">Show this to the provider at pickup.</p>
-                        </div>
-                      )}
-
-                      <div className="mt-6 pt-4 border-t border-slate-50 flex flex-col gap-3">
-                        <div className="flex justify-between items-center">
-                          <div>
-                            <p className="text-[10px] text-slate-400 font-bold uppercase">Total Paid</p>
-                            <p className="text-xl font-black text-slate-900">₹{booking.price}</p>
-                          </div>
-                          {(booking.status === 'completed' || booking.status === 'active') && (
-                            <button className="flex items-center gap-2 px-4 py-2 bg-blue-50 text-blue-600 text-xs font-bold rounded-xl hover:bg-blue-100 transition-all">
-                              <MessageSquare size={14} /> Review
-                            </button>
-                          )}
-                        </div>
-
-                        {booking.status === 'confirmed' && (
-                          <div className="flex gap-2 mt-2">
-                            <button 
-                              onClick={() => handleRequestChange(booking._id)}
-                              className="flex-1 flex items-center justify-center gap-2 px-3 py-2.5 bg-slate-100 text-slate-700 text-[10px] font-black uppercase tracking-wider rounded-xl hover:bg-amber-100 hover:text-amber-700 transition-all"
-                            >
-                              <Settings2 size={14} /> {booking.bookingType === 'rental' ? 'Modify Rental' : 'Request Change'}
-                            </button>
-                            <button 
-                              onClick={() => handleCancel(booking._id)}
-                              className="px-3 py-2.5 bg-red-50 text-red-500 rounded-xl hover:bg-red-100 transition-all"
-                            >
-                              <XCircle size={16} />
-                            </button>
-                          </div>
-                        )}
-                      </div>
+                      <button className="shrink-0 flex items-center justify-center size-12 bg-white border border-slate-200 rounded-2xl shadow-sm text-blue-600 hover:bg-blue-50 transition-colors">
+                        <ArrowDownRight size={20} />
+                      </button>
                     </div>
                   </motion.div>
-
                 ))}
               </div>
+
+
             ) : (
               <div className="text-center py-20 bg-white rounded-[2.5rem] border border-dashed border-slate-200">
                 <div className="size-20 bg-slate-50 rounded-full flex items-center justify-center mx-auto mb-4 text-slate-300">
@@ -229,74 +279,70 @@ const StudentDashboard = () => {
             <div className="bg-white rounded-3xl border border-slate-100 shadow-xl shadow-slate-200/50 p-6 space-y-6">
               <div className="flex justify-between items-end">
                 <div>
-                  <p className="text-sm font-bold text-slate-400 uppercase tracking-wider">Housing Budget</p>
-                  <p className="text-3xl font-black text-slate-900">₹12,000 <span className="text-sm text-slate-400 font-medium">/ mo</span></p>
+                  <p className="text-sm font-bold text-slate-400 uppercase tracking-wider">Total Travel Spend</p>
+                  <p className="text-3xl font-black text-slate-900">₹{totalTravelSpend.toLocaleString("en-IN")}</p>
                 </div>
                 <div className="text-right">
-                  <p className="text-xs font-bold text-green-500 flex items-center justify-end gap-1">
-                    <TrendingUp size={12} /> 12%
-                  </p>
-                  <p className="text-xs text-slate-400 font-medium italic">under budget</p>
+                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Budget</p>
+                  <p className="text-sm font-bold text-blue-500">₹{budget.toLocaleString("en-IN")}</p>
                 </div>
               </div>
 
               {/* PROGRESS BAR */}
               <div className="space-y-2">
                 <div className="h-3 bg-slate-100 rounded-full overflow-hidden">
-                  <div className="h-full bg-blue-500 rounded-full w-[65%]" />
+                  <div className={`h-full rounded-full transition-all duration-1000 ${budgetPercent > 90 ? 'bg-red-500' : 'bg-blue-500'}`} style={{ width: `${budgetPercent}%` }} />
                 </div>
                 <div className="flex justify-between text-[10px] font-bold text-slate-400 uppercase tracking-tighter">
-                  <span>Spent: ₹7,800</span>
-                  <span>Remaining: ₹4,200</span>
+                  <span>{budgetPercent.toFixed(1)}% Used</span>
+                  <span>Remaining: ₹{Math.max(budget - totalTravelSpend, 0).toLocaleString("en-IN")}</span>
                 </div>
               </div>
 
               <div className="h-px bg-slate-50" />
 
-              {/* RECENT EXPENSES */}
+              {/* DYNAMIC EXPENSES */}
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
-                  <h4 className="text-sm font-bold text-slate-900 uppercase tracking-widest">Recent Activity</h4>
-                  <button className="p-1.5 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 transition-colors">
-                    <Plus size={16} />
-                  </button>
+                  <h4 className="text-sm font-bold text-slate-900 uppercase tracking-widest">Recent Transactions</h4>
                 </div>
 
                 <div className="space-y-3">
-                  {expenses.map((exp) => (
-                    <div key={exp.id} className="flex items-center justify-between p-3 rounded-2xl hover:bg-slate-50 transition-colors">
+                  {itineraryBookings.length === 0 ? (
+                    <p className="text-sm text-slate-400 text-center py-4">No transactions yet.</p>
+                  ) : itineraryBookings.slice(0, 5).map((exp) => (
+                    <div key={exp._id} className="flex items-center justify-between p-3 rounded-2xl hover:bg-slate-50 transition-colors">
                       <div className="flex items-center gap-3">
                         <div className={`size-10 rounded-xl flex items-center justify-center ${
-                          exp.category === 'Housing' ? 'bg-orange-50 text-orange-500' :
-                          exp.category === 'Transport' ? 'bg-blue-50 text-blue-500' :
-                          exp.category === 'Food' ? 'bg-purple-50 text-purple-500' : 'bg-green-50 text-green-500'
+                          exp.type === 'activity' ? 'bg-orange-50 text-orange-500' : 'bg-blue-50 text-blue-500'
                         }`}>
-                          {exp.category === 'Housing' ? <Home size={18} /> :
-                           exp.category === 'Transport' ? <Bus size={18} /> :
-                           exp.category === 'Food' ? <Coffee size={18} /> : <TrendingUp size={18} />}
+                          {exp.type === 'activity' ? <History size={18} /> : <Home size={18} />}
                         </div>
                         <div>
-                          <p className="text-sm font-bold text-slate-900">{exp.title}</p>
-                          <p className="text-[10px] text-slate-400 font-medium">{exp.category} • {exp.date}</p>
+                          <p className="text-sm font-bold text-slate-900 line-clamp-1">{exp.type === 'activity' ? exp.itemName : (exp.property?.title || 'Stay')}</p>
+                          <p className="text-[10px] text-slate-400 font-medium capitalize">{exp.type} • {new Date(exp.createdAt || exp.startDate).toLocaleDateString()}</p>
                         </div>
                       </div>
                       <div className="text-right">
-                        <p className={`text-sm font-black ${exp.type === 'expense' ? 'text-slate-900' : 'text-green-600'}`}>
-                          {exp.type === 'expense' ? '-' : '+'}₹{exp.amount}
+                        <p className="text-sm font-black text-slate-900">
+                          -₹{(exp.price || exp.estimatedPrice || 0).toLocaleString("en-IN")}
                         </p>
-                        {exp.type === 'expense' ? <ArrowUpRight size={12} className="text-red-400 ml-auto" /> : <ArrowDownRight size={12} className="text-green-400 ml-auto" />}
                       </div>
                     </div>
                   ))}
                 </div>
               </div>
 
-              <button className="w-full py-4 bg-slate-50 border border-slate-100 text-slate-600 font-bold rounded-2xl text-sm hover:bg-slate-100 transition-all flex items-center justify-center gap-2">
-                <CreditCard size={16} /> View Full Statement
+              <button 
+                onClick={() => setActiveTab('expenses')}
+                className="w-full py-4 bg-slate-50 border border-slate-100 text-slate-600 font-bold rounded-2xl text-sm hover:bg-slate-100 transition-all flex items-center justify-center gap-2"
+              >
+                <CreditCard size={16} /> Open Smart Expense Dashboard
               </button>
             </div>
           </div>
         </div>
+        )}
       </div>
     </div>
   );

@@ -139,6 +139,20 @@ router.patch('/activities/:id', async (req, res) => {
   }
 });
 
+// --- ITINERARY BOOKINGS ---
+
+// @desc    Get all itinerary bookings
+router.get('/bookings/itinerary', async (req, res) => {
+  try {
+    const bookings = await Booking.find({ type: 'activity' })
+      .populate('userId', 'name email')
+      .sort({ createdAt: -1 });
+    res.json(bookings);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
 // --- ANALYTICS ---
 
 // @desc    Get platform stats

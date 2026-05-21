@@ -287,7 +287,7 @@ export default function ExperiencePlanner() {
                 {filteredActivities.map(act => (
                   <motion.div key={act._id} layout className="bg-white/5 border border-white/10 rounded-3xl overflow-hidden hover:border-orange-500/50 transition-all flex flex-col">
                     <div className="h-48 relative">
-                      <img src={act.images?.[0] || 'https://images.unsplash.com/photo-1544627255-75e11a2f1ab6?w=600'} className="w-full h-full object-cover" alt="" />
+                      <img src={act.images?.[0] || 'https://images.pexels.com/photos/270637/pexels-photo-270637.jpeg?auto=compress&cs=tinysrgb&w=600'} className="w-full h-full object-cover" alt="" />
                       <div className="absolute top-4 left-4 bg-slate-900/80 px-3 py-1 rounded-full text-[10px] font-bold border border-white/10 uppercase tracking-widest">{act.category}</div>
                       <div className="absolute bottom-4 right-4 bg-orange-500 px-3 py-1 rounded-full font-bold">₹{act.estimatedPrice}</div>
                     </div>

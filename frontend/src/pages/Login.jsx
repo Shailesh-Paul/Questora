@@ -20,7 +20,11 @@ const Login = () => {
 
     if (result.success) {
       toast.success('Welcome back!');
-      navigate('/');
+      const userRole = result.user?.role;
+      if (userRole === 'student') navigate('/student-dashboard');
+      else if (userRole === 'employee') navigate('/employee-dashboard');
+      else if (userRole === 'admin') navigate('/admin');
+      else navigate('/');
     } else {
       toast.error(result.message);
     }

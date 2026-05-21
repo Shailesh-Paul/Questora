@@ -10,8 +10,9 @@ const PropertyCard = ({ property }) => {
     >
       <div className="relative h-56 overflow-hidden">
         <img 
-          src={property.images[0] || 'https://images.unsplash.com/photo-1555854817-5b27381b4f8d?auto=format&fit=crop&q=80&w=800'} 
+          src={property.images[0] || 'https://images.pexels.com/photos/258154/pexels-photo-258154.jpeg?auto=compress&cs=tinysrgb&w=800'} 
           alt={property.title}
+          referrerPolicy="no-referrer"
           className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
         />
         <div className="absolute top-4 right-4">

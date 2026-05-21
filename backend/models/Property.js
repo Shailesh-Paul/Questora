@@ -27,9 +27,7 @@ const propertySchema = new mongoose.Schema({
     default: [],
   },
   targetAudience: {
-    type: String,
-    enum: ['student', 'employee'],
-    required: true,
+    type: String
   },
   description: {
     type: String,
@@ -62,7 +60,6 @@ const propertySchema = new mongoose.Schema({
   },
   source: {
     type: String,
-    enum: ['MakeMyTrip', 'Airbnb', 'Goibibo'],
     default: 'MakeMyTrip'
   },
 

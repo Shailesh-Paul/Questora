@@ -44,6 +44,7 @@ const activitySchema = new mongoose.Schema({
     max: 100
   },
   nearbyActivities: [String],
+  image: { type: String },
   coordinates: {
     type: {
       type: String,

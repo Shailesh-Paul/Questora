@@ -115,7 +115,7 @@ const activities = [
     popularityScore: 98,
     description: "Witness the divine and ancient fire ritual at the Mahakaleshwar Temple.",
     location: { type: "Point", coordinates: [75.7682, 23.1827] },
-    images: ["https://upload.wikimedia.org/wikipedia/commons/b/b3/Mahakaleshwar_Temple_Ujjain.jpg"]
+    images: ["https://images.unsplash.com/photo-1669018442805-4c079213bc54?w=800"]
   },
   {
     name: "Paragliding",
@@ -154,7 +154,7 @@ const activities = [
     popularityScore: 97,
     description: "A mesmerizing evening fire ceremony on the banks of the holy Ganges.",
     location: { type: "Point", coordinates: [83.0100, 25.3100] },
-    images: ["https://upload.wikimedia.org/wikipedia/commons/4/4c/Aarti_raised_up_during_evening_Ganga_aarti%2C_Varanasi.jpg"]
+    images: ["https://images.unsplash.com/photo-1561361513-2d000a50f0db?w=800"]
   }
 ];
 

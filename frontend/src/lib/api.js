@@ -1,160 +1,486 @@
 import axios from "axios";
 import { API_BASE_URL } from "../config";
 
+// ─── Weather API ─────────────────────────────────────────────────────────────
 export const fetchWeather = async (city) => {
   try {
-    // Using a reliable weather API (mocked for the demo but structured for real API)
-    return {
-      temp: 22,
-      condition: "Clear",
-      icon: "☀️"
-    };
+    return { temp: 22, condition: "Clear", icon: "☀️" };
   } catch (err) {
-    console.error("Failed to fetch weather:", err);
     return null;
   }
 };
 
+// ─── Destination & Activities ────────────────────────────────────────────────
+export const fetchDestinations = async () => {
+  const res = await axios.get(`${API_BASE_URL}/destinations`);
+  const data = Array.isArray(res.data) ? res.data : [];
+  if (data.length === 0) {
+    console.warn('[DEBUG] fetchDestinations: empty response, using static DESTINATIONS fallback');
+    return DESTINATIONS;
+  }
+  console.log(`[DEBUG] fetchDestinations: loaded ${data.length} from API`);
+  return data;
+};
+
+export const fetchDestinationInfo = async (city) => {
+  const res = await axios.get(`${API_BASE_URL}/destinations/budget/${city}`);
+  return res.data;
+};
+
+export const fetchActivitiesByDestination = async (destination) => {
+  const res = await axios.get(`${API_BASE_URL}/activities/${destination}`);
+  return res.data;
+};
+
+export const fetchNearbyActivities = async (destination, lng, lat, maxDistance = 5000) => {
+  const res = await axios.get(`${API_BASE_URL}/activities/nearby/${destination}?lng=${lng}&lat=${lat}&maxDistance=${maxDistance}`);
+  return res.data;
+};
+
+export const getAIRecommendations = async (destination, budget, lat, lng) => {
+  const params = new URLSearchParams();
+  if (budget) params.append('budget', budget);
+  if (lat) params.append('lat', lat);
+  if (lng) params.append('lng', lng);
+  
+  const res = await axios.get(`${API_BASE_URL}/activities/recommendations/${destination}?${params.toString()}`);
+  return res.data;
+};
+
+export const fetchRecommendedStays = async (destination, role = "user") => {
+  const res = await axios.get(`${API_BASE_URL}/recommendations/${destination}?role=${role}`);
+  return res.data;
+};
+
+export const getAIBundle = async (context) => {
+  const res = await axios.post(`${API_BASE_URL}/ai/bundle`, context);
+  return res.data;
+};
+
+// ─── Vehicle & Rental APIs ────────────────────────────────────────────────────
+export const fetchVehicles = async (params = {}) => {
+  const res = await axios.get(`${API_BASE_URL}/vehicles`, { params });
+  return res.data;
+};
+
+export const registerProvider = async (providerData, token) => {
+  const res = await axios.post(`${API_BASE_URL}/providers/register`, providerData, {
+    headers: { Authorization: `Bearer ${token}` }
+  });
+  return res.data;
+};
+
+export const getProviderStatus = async (token) => {
+  const res = await axios.get(`${API_BASE_URL}/providers/status`, {
+    headers: { Authorization: `Bearer ${token}` }
+  });
+  return res.data;
+};
+
+export const createVehicle = async (vehicleData, token) => {
+  const res = await axios.post(`${API_BASE_URL}/vehicles`, vehicleData, {
+    headers: { Authorization: `Bearer ${token}` }
+  });
+  return res.data;
+};
+
+export const updateVehicleStatus = async (vehicleId, status, token) => {
+  const res = await axios.patch(`${API_BASE_URL}/vehicles/status/${vehicleId}`, { availabilityStatus: status }, {
+    headers: { Authorization: `Bearer ${token}` }
+  });
+  return res.data;
+};
+
+export const mapDbToVehicle = (v) => ({
+  id: v._id,
+  name: v.name,
+  category: v.category,
+  pricePerHour: v.hourlyPrice || v.pricePerHour,
+  image: v.images?.[0] || v.image || "https://images.pexels.com/photos/3311574/pexels-photo-3311574.jpeg?auto=compress&cs=tinysrgb&w=800",
+  ratings: v.ratings || 4.5,
+  availability: v.availabilityStatus ? "available" : "paused",
+  location: v.pickupLocation || v.location,
+  features: v.features || ["Automatic", "GPS Included", "Insured"],
+  dailyDiscount: v.dailyDiscount || 15
+});
+
+// ─── Admin API Functions ─────────────────────────────────────────────────────
+export const fetchPlatformStats = async (token) => {
+  const res = await axios.get(`${API_BASE_URL}/admin/stats`, {
+    headers: { Authorization: `Bearer ${token}` }
+  });
+  return res.data;
+};
+
+export const fetchAllUsers = async (token) => {
+  const res = await axios.get(`${API_BASE_URL}/admin/users`, {
+    headers: { Authorization: `Bearer ${token}` }
+  });
+  return res.data;
+};
+
+export const updatePlatformUser = async (userId, status, token) => {
+  const res = await axios.patch(`${API_BASE_URL}/admin/users/${userId}`, { status }, {
+    headers: { Authorization: `Bearer ${token}` }
+  });
+  return res.data;
+};
+
+export const fetchPendingProviders = async (token) => {
+  const res = await axios.get(`${API_BASE_URL}/admin/providers/pending`, {
+    headers: { Authorization: `Bearer ${token}` }
+  });
+  return res.data;
+};
+
+export const verifyProviderAdmin = async (requestId, status, remarks, token) => {
+  const res = await axios.patch(`${API_BASE_URL}/admin/providers/verify/${requestId}`, { status, remarks }, {
+    headers: { Authorization: `Bearer ${token}` }
+  });
+  return res.data;
+};
+
+export const fetchPendingVehicles = async (token) => {
+  const res = await axios.get(`${API_BASE_URL}/admin/vehicles/pending`, {
+    headers: { Authorization: `Bearer ${token}` }
+  });
+  return res.data;
+};
+
+export const verifyVehicleAdmin = async (vehicleId, status, token) => {
+  const res = await axios.patch(`${API_BASE_URL}/admin/vehicles/verify/${vehicleId}`, { status }, {
+    headers: { Authorization: `Bearer ${token}` }
+  });
+  return res.data;
+};
+
+export const fetchItineraryBookings = async (token) => {
+  const res = await axios.get(`${API_BASE_URL}/admin/bookings/itinerary`, {
+    headers: { Authorization: `Bearer ${token}` }
+  });
+  return res.data;
+};
+
+// ─── Mock Data for Development ─────────────────────────────────────────────
+export const DESTINATIONS = [
+  { id: "goa", name: "Goa", state: "Goa", image: "https://images.pexels.com/photos/1078983/pexels-photo-1078983.jpeg?auto=compress&cs=tinysrgb&w=800", tagline: "Sun, Sand, and Soul.", crowdLevel: "high", tag: "Trending", trendingScore: 98 },
+  { id: "rishikesh", name: "Rishikesh", state: "Uttarakhand", image: "https://images.pexels.com/photos/1032156/pexels-photo-1032156.jpeg?auto=compress&cs=tinysrgb&w=800", tagline: "The Yoga Capital of the World.", crowdLevel: "medium", tag: "Adventure", trendingScore: 95 },
+  { id: "ujjain", name: "Ujjain", state: "Madhya Pradesh", image: "https://images.pexels.com/photos/1098460/pexels-photo-1098460.jpeg?auto=compress&cs=tinysrgb&w=800", tagline: "The City of Mahakal.", crowdLevel: "medium", tag: "Spiritual", trendingScore: 92 },
+  { id: "manali", name: "Manali", state: "Himachal Pradesh", image: "https://images.pexels.com/photos/270637/pexels-photo-270637.jpeg?auto=compress&cs=tinysrgb&w=800", tagline: "Gateway to Adventure.", crowdLevel: "high", tag: "Snow", trendingScore: 90 },
+  { id: "jaipur", name: "Jaipur", state: "Rajasthan", image: "https://images.pexels.com/photos/3581369/pexels-photo-3581369.jpeg?auto=compress&cs=tinysrgb&w=800", tagline: "The Pink City.", crowdLevel: "high", tag: "Heritage", trendingScore: 88 },
+  { id: "varanasi", name: "Varanasi", state: "Uttar Pradesh", image: "https://images.pexels.com/photos/8112571/pexels-photo-8112571.jpeg?auto=compress&cs=tinysrgb&w=800", tagline: "The Spiritual Capital of India.", crowdLevel: "high", tag: "Spiritual", trendingScore: 96 }
+];
+
+export const MOCK_ACTIVITIES = [
+  // Goa
+  {
+    id: "goa-scuba",
+    name: "Scuba Diving at Grand Island",
+    category: "Adventure",
+    price: 3500,
+    duration: "4 Hours",
+    slots: 12,
+    rating: 4.8,
+    destination: "goa",
+    shortDesc: "Explore underwater coral reefs and marine life of the Arabian Sea with certified PADI instructors.",
+    image: "https://images.pexels.com/photos/248159/pexels-photo-248159.jpeg?auto=compress&cs=tinysrgb&w=800"
+  },
+  {
+    id: "goa-beach-party",
+    name: "Anjuna Beach Sundowner & Party",
+    category: "Nightlife",
+    price: 2000,
+    duration: "5 Hours",
+    slots: 50,
+    rating: 4.6,
+    destination: "goa",
+    shortDesc: "Dance the night away on the beaches of Goa with elite international DJs, bonfires, and amazing sea views.",
+    image: "https://images.pexels.com/photos/1078983/pexels-photo-1078983.jpeg?auto=compress&cs=tinysrgb&w=800"
+  },
+  {
+    id: "goa-water-sports",
+    name: "Parasailing & Jet Skiing at Calangute",
+    category: "Water Sports",
+    price: 1800,
+    duration: "2 Hours",
+    slots: 15,
+    rating: 4.7,
+    destination: "goa",
+    shortDesc: "Get your adrenaline pumping with parasailing, banana boat rides, and jet skiing over the warm ocean waves.",
+    image: "https://images.pexels.com/photos/457882/pexels-photo-457882.jpeg?auto=compress&cs=tinysrgb&w=800"
+  },
+  {
+    id: "goa-dudhsagar",
+    name: "Dudhsagar Waterfalls Guided Trek",
+    category: "Nature",
+    price: 1500,
+    duration: "6 Hours",
+    slots: 20,
+    rating: 4.9,
+    destination: "goa",
+    shortDesc: "Trek through the lush Western Ghats to witness the spectacular four-tiered milky-white Dudhsagar waterfall.",
+    image: "https://images.pexels.com/photos/15286/pexels-photo-15286.jpeg?auto=compress&cs=tinysrgb&w=800"
+  },
+
+  // Rishikesh
+  {
+    id: "rishikesh-rafting",
+    name: "White Water River Rafting",
+    category: "Adventure",
+    price: 1800,
+    duration: "3 Hours",
+    slots: 16,
+    rating: 4.9,
+    destination: "rishikesh",
+    shortDesc: "Conquer the thrilling grade III & IV rapids of the holy Ganges from Shivpuri to Rishikesh with safety guides.",
+    image: "https://images.pexels.com/photos/1032156/pexels-photo-1032156.jpeg?auto=compress&cs=tinysrgb&w=800"
+  },
+  {
+    id: "rishikesh-bungee",
+    name: "Mohan Chatti Bungee Jumping",
+    category: "Adventure",
+    price: 3700,
+    duration: "2 Hours",
+    slots: 8,
+    rating: 4.8,
+    destination: "rishikesh",
+    shortDesc: "Leap from India's highest fixed cantilever platform standing at a jaw-dropping height of 83 meters.",
+    image: "https://images.pexels.com/photos/386009/pexels-photo-386009.jpeg?auto=compress&cs=tinysrgb&w=800"
+  },
+  {
+    id: "rishikesh-aarti",
+    name: "Ganga Aarti at Triveni Ghat",
+    category: "Spiritual",
+    price: 300,
+    duration: "1.5 Hours",
+    slots: 100,
+    rating: 4.9,
+    destination: "rishikesh",
+    shortDesc: "Immerse in the sacred evening ritual of Vedic chants, giant brass lamps, and flower offerings by the holy river.",
+    image: "https://images.pexels.com/photos/1005486/pexels-photo-1005486.jpeg?auto=compress&cs=tinysrgb&w=800"
+  },
+  {
+    id: "rishikesh-yoga",
+    name: "Sunrise Yoga & Meditation Session",
+    category: "Wellness",
+    price: 600,
+    duration: "2 Hours",
+    slots: 25,
+    rating: 4.7,
+    destination: "rishikesh",
+    shortDesc: "Align your mind, body, and soul in the absolute peace of the foothills of the Himalayas, guided by yoga gurus.",
+    image: "https://images.pexels.com/photos/5386864/pexels-photo-5386864.jpeg?auto=compress&cs=tinysrgb&w=800"
+  },
+
+  // Ujjain
+  {
+    id: "ujjain-bhasma-aarti",
+    name: "Mahakaleshwar Bhasma Aarti",
+    category: "Spiritual",
+    price: 500,
+    duration: "3 Hours",
+    slots: 30,
+    rating: 5.0,
+    destination: "ujjain",
+    shortDesc: "Witness the legendary and ancient daily ash ritual of Lord Shiva in the early morning at Mahakaleshwar Jyotirlinga.",
+    image: "https://images.pexels.com/photos/1098460/pexels-photo-1098460.jpeg?auto=compress&cs=tinysrgb&w=800"
+  },
+  {
+    id: "ujjain-shipra-dip",
+    name: "Ram Ghat Walk & Shipra River Dip",
+    category: "Spiritual",
+    price: 150,
+    duration: "2 Hours",
+    slots: 100,
+    rating: 4.5,
+    destination: "ujjain",
+    shortDesc: "Walk along the ancient Ram Ghat and experience the spiritual essence of a holy dip in the sacred Shipra River.",
+    image: "https://images.pexels.com/photos/8112571/pexels-photo-8112571.jpeg?auto=compress&cs=tinysrgb&w=800"
+  },
+  {
+    id: "ujjain-observatory",
+    name: "Jantar Mantar Astronomical Tour",
+    category: "Historical",
+    price: 250,
+    duration: "1.5 Hours",
+    slots: 40,
+    rating: 4.4,
+    destination: "ujjain",
+    shortDesc: "Explore the ancient stone observatory built by Maharaja Sawai Jai Singh II to measure time and celestial movements.",
+    image: "https://images.pexels.com/photos/2245436/pexels-photo-2245436.jpeg?auto=compress&cs=tinysrgb&w=800"
+  },
+
+  // Manali
+  {
+    id: "manali-paragliding",
+    name: "Tandem Paragliding in Solang Valley",
+    category: "Adventure",
+    price: 3200,
+    duration: "1 Hour",
+    slots: 10,
+    rating: 4.8,
+    destination: "manali",
+    shortDesc: "Soar high in the blue sky and capture panoramic bird's-eye views of the snow-capped Himalayan peaks.",
+    image: "https://images.pexels.com/photos/386009/pexels-photo-386009.jpeg?auto=compress&cs=tinysrgb&w=800"
+  },
+  {
+    id: "manali-skiing",
+    name: "Snow Skiing Lessons in Solang",
+    category: "Adventure",
+    price: 2500,
+    duration: "3 Hours",
+    slots: 8,
+    rating: 4.6,
+    destination: "manali",
+    shortDesc: "Learn how to glide, turn, and brake on smooth snowy slopes under the strict supervision of ski experts.",
+    image: "https://images.pexels.com/photos/270637/pexels-photo-270637.jpeg?auto=compress&cs=tinysrgb&w=800"
+  },
+  {
+    id: "manali-hadimba",
+    name: "Hadimba Temple Forest Stroll",
+    category: "Historical",
+    price: 100,
+    duration: "2 Hours",
+    slots: 50,
+    rating: 4.7,
+    destination: "manali",
+    shortDesc: "Visit the iconic 16th-century wooden temple dedicated to Goddess Hadimba, nestled in thick pine forests.",
+    image: "https://images.pexels.com/photos/9754/pexels-photo-9754.jpeg?auto=compress&cs=tinysrgb&w=800"
+  },
+
+  // Jaipur
+  {
+    id: "jaipur-amer-fort",
+    name: "Amer Fort Historical Jeep Tour",
+    category: "Historical",
+    price: 800,
+    duration: "3 Hours",
+    slots: 20,
+    rating: 4.8,
+    destination: "jaipur",
+    shortDesc: "Ride up to the hilltop fortress of Amer Fort and explore its grand courtyards, palaces, and detailed glasswork.",
+    image: "https://images.pexels.com/photos/3581369/pexels-photo-3581369.jpeg?auto=compress&cs=tinysrgb&w=800"
+  },
+  {
+    id: "jaipur-chokhi-dhani",
+    name: "Chokhi Dhani Cultural Feast",
+    category: "Food",
+    price: 1200,
+    duration: "4 Hours",
+    slots: 60,
+    rating: 4.7,
+    destination: "jaipur",
+    shortDesc: "Indulge in a classic Rajasthani buffet meal combined with vibrant puppet shows, camel rides, and folk dances.",
+    image: "https://images.pexels.com/photos/3581369/pexels-photo-3581369.jpeg?auto=compress&cs=tinysrgb&w=800"
+  },
+  {
+    id: "jaipur-balloon",
+    name: "Pink City Hot Air Balloon Ride",
+    category: "Adventure",
+    price: 8500,
+    duration: "3 Hours",
+    slots: 6,
+    rating: 4.9,
+    destination: "jaipur",
+    shortDesc: "Float gently in the breeze over magnificent royal palaces, serene lakes, and traditional Rajasthani villages.",
+    image: "https://images.pexels.com/photos/386009/pexels-photo-386009.jpeg?auto=compress&cs=tinysrgb&w=800"
+  },
+
+  // Varanasi
+  {
+    id: "varanasi-ganga-aarti",
+    name: "Dasaswamedh Ghat Evening Ganga Aarti",
+    category: "Spiritual",
+    price: 300,
+    duration: "1.5 Hours",
+    slots: 100,
+    rating: 5.0,
+    destination: "varanasi",
+    shortDesc: "Experience the incredibly powerful evening ritual of rhythmic hymns, oil lamps, and divine energy on the riverbank.",
+    image: "https://images.pexels.com/photos/8112571/pexels-photo-8112571.jpeg?auto=compress&cs=tinysrgb&w=800"
+  },
+  {
+    id: "varanasi-boat-ride",
+    name: "Subah-e-Banaras Morning Boat Tour",
+    category: "Spiritual",
+    price: 500,
+    duration: "2 Hours",
+    slots: 20,
+    rating: 4.9,
+    destination: "varanasi",
+    shortDesc: "Take a scenic sunrise row-boat ride along Varanasi's active ghats as pilgrims perform morning prayers.",
+    image: "https://images.pexels.com/photos/8112571/pexels-photo-8112571.jpeg?auto=compress&cs=tinysrgb&w=800"
+  },
+  {
+    id: "varanasi-sarnath",
+    name: "Sarnath Buddhist Monasteries Tour",
+    category: "Historical",
+    price: 400,
+    duration: "3 Hours",
+    slots: 30,
+    rating: 4.7,
+    destination: "varanasi",
+    shortDesc: "Visit Sarnath, where Lord Buddha gave his first sermon. Explore ancient ruins, Stupas, and temples.",
+    image: "https://images.pexels.com/photos/2245436/pexels-photo-2245436.jpeg?auto=compress&cs=tinysrgb&w=800"
+  }
+];
+
+export const MOCK_HOTELS = [
+  { id: "hotel-1", name: "Luxury Beach Resort", price: 8500, rating: 4.8, image: "https://images.pexels.com/photos/258154/pexels-photo-258154.jpeg?auto=compress&cs=tinysrgb&w=800" },
+  { id: "hotel-2", name: "Heritage Palace Hotel", price: 12000, rating: 4.9, image: "https://images.pexels.com/photos/1684004/pexels-photo-1684004.jpeg?auto=compress&cs=tinysrgb&w=800" }
+];
+
+export const generateAIInsights = async (dest) => ({
+  weather: "Perfect",
+  crowd: "Moderate",
+  tip: "Book activities in advance."
+});
+
 export const fetchListings = async () => {
   try {
-    const apiUrl = API_BASE_URL;
-    const res = await axios.get(`${apiUrl}/listings`);
+    const res = await axios.get(`${API_BASE_URL}/listings`);
     return res.data;
   } catch (err) {
-    console.error("Failed to fetch listings:", err);
+    console.error("fetchListings error:", err);
     return [];
   }
 };
 
-export const mapDbToRental = (listing) => ({
-  id: listing._id,
-  name: listing.title,
-  category: listing.subCategory || 'cars',
-  pricePerHour: listing.price,
-  rushHourPrice: Math.round(listing.price * 1.2),
-  image: listing.images?.[0] || 'https://images.unsplash.com/photo-1533473359331-0135ef1b58bf?w=600',
-  features: listing.facilities || [],
-  budgetTier: listing.price < 800 ? "ECONOMY TIER" : (listing.price < 2500 ? "PREMIUM TIER" : "LUXURY TIER")
-});
+export const mapDbToHotel = (db) => db;
 
-export const mapDbToHotel = (listing) => ({
-  id: listing._id,
-  name: listing.title,
-  type: listing.subCategory || 'hotel',
-  stars: 4,
-  price: listing.price,
-  currency: 'INR',
-  amenities: listing.facilities || [],
-  image: listing.images?.[0] || 'https://images.unsplash.com/photo-1520250497591-112f2f40a3f4?w=600'
-});
-
-export const mapDbToActivity = (listing) => ({
-  id: listing._id,
-  name: listing.title,
-  duration: '2 hrs',
-  price: listing.price,
-  category: listing.subCategory || 'Adventure',
-  rating: 4.5,
-  slots: listing.maxGuests || 10,
-  shortDesc: listing.description,
-  thumb1: listing.images?.[0] || 'https://images.unsplash.com/photo-1530866495561-507c9faab2ed?w=300',
-  thumb2: listing.images?.[1] || listing.images?.[0] || 'https://images.unsplash.com/photo-1544627255-75e11a2f1ab6?w=300'
-});
-
-// ─── Gemini: AI Itinerary Generator ───────────────────────────────────────────
-const GEMINI_KEY = process.env.REACT_APP_GEMINI_API_KEY || "";
-
-export const generateItinerary = async (destination, members, budget, activities) => {
-  try {
-    const prompt = `As a luxury travel planner, create a detailed 3-day weekend itinerary for ${destination}. 
-Group size: ${members} people. Budget: ₹${budget}. 
-Must-do: ${activities.join(", ")}.
-Return JSON with: { overview, days: [{date, morning, afternoon, evening, hotel, estimatedCost}] }
-Keep it luxury, concise, executive-level.`;
-
-    const res = await axios.post(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${GEMINI_KEY}`,
-      { contents: [{ parts: [{ text: prompt }] }] }
-    );
-    const text = res.data.candidates[0].content.parts[0].text;
-    const json = text.match(/\{[\s\S]*\}/)?.[0];
-    return json ? JSON.parse(json) : null;
-  } catch {
-    return null;
-  }
+const ACTIVITY_FALLBACK_IMAGES = {
+  Adventure: "https://images.pexels.com/photos/386009/pexels-photo-386009.jpeg?auto=compress&cs=tinysrgb&w=800",
+  Spiritual: "https://images.pexels.com/photos/1098460/pexels-photo-1098460.jpeg?auto=compress&cs=tinysrgb&w=800",
+  Nightlife: "https://images.pexels.com/photos/1078983/pexels-photo-1078983.jpeg?auto=compress&cs=tinysrgb&w=800",
+  Nature: "https://images.pexels.com/photos/15286/pexels-photo-15286.jpeg?auto=compress&cs=tinysrgb&w=800",
+  Historical: "https://images.pexels.com/photos/3581369/pexels-photo-3581369.jpeg?auto=compress&cs=tinysrgb&w=800",
+  "Water Sports": "https://images.pexels.com/photos/457882/pexels-photo-457882.jpeg?auto=compress&cs=tinysrgb&w=800",
+  Wellness: "https://images.pexels.com/photos/5386864/pexels-photo-5386864.jpeg?auto=compress&cs=tinysrgb&w=800",
+  Food: "https://images.pexels.com/photos/3581369/pexels-photo-3581369.jpeg?auto=compress&cs=tinysrgb&w=800",
 };
 
-// ─── OpenAI: AI Insights ───────────────────────────────────────────────────────
-const OPENAI_KEY = process.env.REACT_APP_OPENAI_API_KEY || "";
+export const mapDbToActivity = (db) => {
+  if (!db) return db;
+  const category = db.category || "Adventure";
+  const image =
+    db.image ||
+    db.images?.[0] ||
+    ACTIVITY_FALLBACK_IMAGES[category] ||
+    ACTIVITY_FALLBACK_IMAGES.Adventure;
 
-export const generateAIInsights = async (itemName, type, userProfile) => {
-  try {
-    const prompt = `As a luxury travel advisor, write a 2-sentence highly personalized pitch on why the ${type} "${itemName}" is a perfect fit for a group of ${userProfile.members} travelers visiting ${userProfile.destination} with a budget of ₹${userProfile.budget}. Make it sound exclusive and enticing.`;
-    
-    const res = await axios.post(
-      "https://api.openai.com/v1/chat/completions",
-      {
-        model: "gpt-3.5-turbo",
-        messages: [{ role: "user", content: prompt }],
-        max_tokens: 60,
-      },
-      {
-        headers: {
-          "Authorization": `Bearer ${OPENAI_KEY}`,
-          "Content-Type": "application/json"
-        }
-      }
-    );
-    return res.data.choices[0].message.content.trim();
-  } catch (error) {
-    console.error("OpenAI Error:", error);
-    return `An excellent choice for your stay in ${userProfile.destination}, offering great amenities and comfort tailored to your group.`;
-  }
+  return {
+    id: db._id || db.id,
+    name: db.activityName || db.name || db.title,
+    category,
+    price: db.estimatedPrice ?? db.price ?? 0,
+    duration: db.duration || "2 Hours",
+    slots: db.slots || 10,
+    rating: db.ratings ?? db.rating ?? (db.popularityScore ? (db.popularityScore / 20).toFixed(1) : 4.5),
+    shortDesc: db.description || db.shortDesc || "",
+    image,
+    destination: (db.destination || db.city || "").toString(),
+    tags: db.tags || [],
+  };
 };
 
-// ─── Mock fallbacks (so UI never breaks without API keys) ────────────────────
-export const MOCK_HOTELS = [
-  // Hotels and Villas
-  { id: "h1", name: "Aloha on the Ganges", type: "hotel", stars: 5, price: 8500, currency: "INR", amenities: ["Pool", "Spa", "Yoga", "River View"], image: "https://images.unsplash.com/photo-1520250497591-112f2f40a3f4?w=600" },
-  { id: "h2", name: "The Glasshouse on the Ganges", type: "hotel", stars: 5, price: 12000, currency: "INR", amenities: ["Heritage", "Private Beach", "Butler", "Gourmet"], image: "https://images.unsplash.com/photo-1571896349842-33c89424de2d?w=600" },
-  { id: "v1", name: "Himalayan Sunrise Villa", type: "hotel", stars: 4, price: 15000, currency: "INR", amenities: ["Private Chef", "4 Bedrooms", "Mountain View", "Fireplace"], image: "https://images.unsplash.com/photo-1518780664697-55e3ad937233?w=600" },
-  
-  // Hostels and Dormitory
-  { id: "ho1", name: "Zostel Rishikesh", type: "hostel", stars: 4, price: 800, currency: "INR", amenities: ["Bunk Beds", "Cafe", "WiFi", "Social Events"], image: "https://images.unsplash.com/photo-1555854877-bab0e564b8d5?w=600" },
-  { id: "ho2", name: "The Hosteller", type: "hostel", stars: 4, price: 900, currency: "INR", amenities: ["AC Dorms", "Library", "Terrace", "Lockers"], image: "https://images.unsplash.com/photo-1596394516093-501ba68a0ba6?w=600" },
-
-  // Local Staying Homes
-  { id: "lh1", name: "Sharma Family Homestay", type: "home", stars: 5, price: 2500, currency: "INR", amenities: ["Home Cooked Meals", "Local Guide", "Garden", "Authentic"], image: "https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=600" },
-  { id: "lh2", name: "Riverside Cottage", type: "home", stars: 4, price: 3200, currency: "INR", amenities: ["Private Access", "Pet Friendly", "Kitchen", "Quiet"], image: "https://images.unsplash.com/photo-1499793983690-e29da59ef1c2?w=600" }
-];
-
-export const MOCK_ACTIVITIES = [
-  { id: "a1", name: "White Water Rafting — Grade 4", duration: "3 hrs", price: 1200, category: "Extreme", rating: 4.8, slots: 20, image: "https://images.unsplash.com/photo-1530866495561-507c9faab2ed?w=800", shortDesc: "Navigate the thrilling rapids of the Ganges with expert guides. Experience the ultimate adrenaline rush amidst the breathtaking Himalayan foothills." },
-  { id: "a2", name: "Bungee Jumping at Mohan Chatti", duration: "2 hrs", price: 3500, category: "Extreme", rating: 4.9, slots: 8, image: "https://images.unsplash.com/photo-1522044810620-3e28ce194ddc?w=800", shortDesc: "Take a leap of faith from India's highest bungee platform. Feel the wind rush past as you free-fall over the pristine valley." },
-  { id: "a3", name: "Sunset Kayaking on Ganges", duration: "1.5 hrs", price: 900, category: "Adventure", rating: 4.7, slots: 15, image: "https://images.unsplash.com/photo-1544551763-46a013bb70d5?w=800", shortDesc: "Paddle along the serene waters of the Ganges as the sun dips below the horizon. Enjoy an intimate, peaceful encounter with the river's evening calm." },
-  { id: "a4", name: "Beatles Ashram Yoga Retreat", duration: "Half day", price: 1500, category: "Wellness", rating: 4.6, slots: 30, image: "https://images.unsplash.com/photo-1544367567-0f2fcb009e0b?w=800", shortDesc: "Immerse yourself in deep meditation at the historic Chaurasi Kutia ashram. Connect with your inner self in the very place that inspired the legendary band." },
-  { id: "a5", name: "Camping & Bonfire at Shivpuri", duration: "Overnight", price: 2800, category: "Adventure", rating: 4.8, slots: 25, image: "https://images.unsplash.com/photo-1523987355523-c7b5b0dd90a7?w=800", shortDesc: "Spend an unforgettable night under the starry sky on the white sand beaches of the Ganges. Share stories around a crackling bonfire with fellow travelers." },
-  { id: "a6", name: "Ganga Aarti & Local Walk", duration: "2 hrs", price: 500, category: "Culture", rating: 4.9, slots: 50, image: "https://upload.wikimedia.org/wikipedia/commons/4/4c/Aarti_raised_up_during_evening_Ganga_aarti%2C_Varanasi.jpg", shortDesc: "Witness the mesmerizing evening fire ritual performed by synchronized priests on the ghats. Followed by a guided walk through the ancient, vibrant alleys." },
-  { id: "a7", name: "Himalayan Mountain Biking", duration: "4 hrs", price: 1800, category: "Extreme", rating: 4.7, slots: 10, image: "https://images.unsplash.com/photo-1541625602330-2277a4c46182?w=800", shortDesc: "Conquer rugged mountain trails with spectacular panoramic views of the Garhwal Himalayas. A challenging and rewarding adventure for cycling enthusiasts." },
-  { id: "a8", name: "Pottery Class with Locals", duration: "2 hrs", price: 600, category: "Culture", rating: 4.5, slots: 12, image: "https://images.unsplash.com/photo-1533907650686-70576141c030?w=800", shortDesc: "Learn the traditional art of clay pottery directly from local artisans. Shape your own souvenirs on a classic spinning wheel while hearing village stories." }
-];
-
-export const MOCK_RENTALS = [
-  { id: "r1", name: "Hyundai Creta", category: "cars", pricePerHour: 500, rushHourPrice: 750, image: "https://images.unsplash.com/photo-1533473359331-0135ef1b58bf?w=600", features: ["AC", "Automatic", "5 Seats"], budgetTier: "PREMIUM TIER" },
-  { id: "r2", name: "Maruti Swift", category: "cars", pricePerHour: 300, rushHourPrice: 450, image: "https://images.unsplash.com/photo-1590362891991-f776e747a588?w=600", features: ["AC", "Manual", "5 Seats"], budgetTier: "ECONOMY TIER" },
-  { id: "r3", name: "Mercedes C-Class", category: "cars", pricePerHour: 1500, rushHourPrice: 2200, image: "https://images.unsplash.com/photo-1553440569-bcc63803a83d?w=600", features: ["Luxury", "Sunroof", "5 Seats"], budgetTier: "LUXURY TIER" },
-  { id: "r4", name: "Royal Enfield Classic 350", category: "bikes", pricePerHour: 150, rushHourPrice: 250, image: "https://images.unsplash.com/photo-1558981403-c5f91cbba527?w=600", features: ["Cruiser", "Retro", "2 Seats"], budgetTier: "ECONOMY TIER" },
-  { id: "r5", name: "KTM Duke 390", category: "bikes", pricePerHour: 200, rushHourPrice: 300, image: "https://images.unsplash.com/photo-1599819811279-d5ad9cccf838?w=600", features: ["Sport", "Fast", "2 Seats"], budgetTier: "PREMIUM TIER" },
-  { id: "r6", name: "Activa 6G", category: "scooty", pricePerHour: 80, rushHourPrice: 130, image: "https://images.unsplash.com/photo-1591637333184-19aa84b3e01f?w=600", features: ["Easy to ride", "Storage", "2 Seats"], budgetTier: "ECONOMY TIER" },
-  { id: "r7", name: "Vespa Elegante", category: "scooty", pricePerHour: 120, rushHourPrice: 180, image: "https://images.unsplash.com/photo-1597813583279-2479f649887f?w=600", features: ["Stylish", "Smooth", "2 Seats"], budgetTier: "PREMIUM TIER" },
-  { id: "r8", name: "Mountain MTB Cycle", category: "cycles", pricePerHour: 30, rushHourPrice: 50, image: "https://images.unsplash.com/photo-1532298229144-0ec0c57515c7?w=600", features: ["Off-road", "Geared", "1 Seat"], budgetTier: "ECONOMY TIER" }
-];
-
-export const DESTINATIONS = [
-  { id: "manali", name: "Manali", tagline: "Adventure & Peace", state: "Himachal Pradesh", tag: "Mountain", color: "#3b82f6", crowdLevel: "high", image: "https://images.unsplash.com/photo-1626621341517-bbf3d9990a23?w=800" },
-  { id: "goa", name: "Goa", tagline: "Beaches & Vibes", state: "Goa", tag: "Coastal", color: "#f97316", crowdLevel: "medium", image: "https://images.unsplash.com/photo-1614082242765-7c98ca0f3df3?w=800" },
-  { id: "rishikesh", name: "Rishikesh", tagline: "Yoga & Rafting", state: "Uttarakhand", tag: "Spiritual", color: "#22c55e", crowdLevel: "low", image: "https://images.unsplash.com/photo-1528127269322-539801943592?auto=format&fit=crop&w=800" },
-  { id: "shimla", name: "Shimla", tagline: "Hills & Heritage", state: "Himachal Pradesh", tag: "Scenic", color: "#3b82f6", crowdLevel: "high", image: "https://images.unsplash.com/photo-1593693397690-362cb9666fc2?w=800" },
-  { id: "varanasi", name: "Varanasi", tagline: "Culture & Ghats", state: "Uttar Pradesh", tag: "Heritage", color: "#f97316", crowdLevel: "medium", image: "https://images.unsplash.com/photo-1516483638261-f4dbaf036963?auto=format&fit=crop&w=800" },
-  { id: "coorg", name: "Coorg", tagline: "Mist & Coffee", state: "Karnataka", tag: "Nature", color: "#22c55e", crowdLevel: "low", image: "https://images.unsplash.com/photo-1602216056096-3b40cc0c9944?w=800" },
-];
+export const mapDbToRental = (db) => db;

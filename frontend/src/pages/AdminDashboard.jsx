@@ -7,7 +7,7 @@ import {
 } from "lucide-react";
 import { 
   fetchPlatformStats, fetchAllUsers, fetchPendingProviders, verifyProviderAdmin, 
-  fetchPendingVehicles, verifyVehicleAdmin, updatePlatformUser 
+  fetchPendingVehicles, verifyVehicleAdmin, updatePlatformUser, fetchItineraryBookings
 } from "../lib/api";
 import toast from "react-hot-toast";
 import Navbar from "../components/Navbar";
@@ -38,6 +38,7 @@ export default function AdminDashboard() {
     { id: "users", label: "User Management", icon: <Users size={20} /> },
     { id: "providers", label: "Verification Requests", icon: <ShieldCheck size={20} /> },
     { id: "listings", label: "Vehicle Approvals", icon: <Car size={20} /> },
+    { id: "itinerary", label: "Itinerary Bookings", icon: <Map size={20} /> },
     { id: "settings", label: "Global Settings", icon: <Settings size={20} /> },
   ];
 
@@ -85,6 +86,7 @@ export default function AdminDashboard() {
             {activeTab === "users" && <UserManagement token={token} />}
             {activeTab === "providers" && <ProviderApprovals token={token} />}
             {activeTab === "listings" && <VehicleApprovals token={token} />}
+            {activeTab === "itinerary" && <ItineraryBookings token={token} />}
           </AnimatePresence>
         </main>
       </div>
@@ -372,4 +374,74 @@ function VehicleApprovals({ token }) {
 
 function MapPin({ size, className }) {
   return <Map size={size} className={className} />;
+}
+
+function ItineraryBookings({ token }) {
+  const [bookings, setBookings] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    loadBookings();
+  }, []);
+
+  const loadBookings = async () => {
+    try {
+      const data = await fetchItineraryBookings(token);
+      setBookings(data);
+    } catch (err) {
+      toast.error("Failed to load itinerary bookings");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} className="space-y-8">
+      <h2 className="text-4xl font-black tracking-tight">Itinerary <span className="text-orange-500">Bookings</span></h2>
+
+      <div className="bg-white/5 border border-white/10 rounded-[3rem] overflow-hidden">
+        {loading ? (
+          <div className="p-12 text-center text-white/40">Loading bookings...</div>
+        ) : bookings.length === 0 ? (
+          <div className="p-12 text-center text-white/40 font-bold text-lg">No itinerary bookings found.</div>
+        ) : (
+          <table className="w-full text-left">
+            <thead className="bg-white/5 border-b border-white/10">
+              <tr>
+                <th className="p-8 text-xs font-bold uppercase tracking-widest text-white/40">User</th>
+                <th className="p-8 text-xs font-bold uppercase tracking-widest text-white/40">Activity Booked</th>
+                <th className="p-8 text-xs font-bold uppercase tracking-widest text-white/40">Destination</th>
+                <th className="p-8 text-xs font-bold uppercase tracking-widest text-white/40">Dates</th>
+                <th className="p-8 text-xs font-bold uppercase tracking-widest text-white/40 text-right">Advance Paid</th>
+              </tr>
+            </thead>
+            <tbody>
+              {bookings.map((b) => (
+                <tr key={b._id} className="border-b border-white/5 hover:bg-white/[0.02] transition-all group">
+                  <td className="p-8">
+                    <p className="font-bold">{b.userId?.name || 'Unknown User'}</p>
+                    <p className="text-xs text-white/40">{b.userPhoneNumber}</p>
+                  </td>
+                  <td className="p-8">
+                    <p className="font-bold text-orange-400">{b.itemName || 'Activity'}</p>
+                    <p className="text-[10px] text-white/40 uppercase tracking-widest">Qty: {b.quantityBooked}</p>
+                  </td>
+                  <td className="p-8">
+                    <span className="capitalize">{b.destinationId}</span>
+                  </td>
+                  <td className="p-8">
+                    <p className="text-xs">{new Date(b.startDate).toLocaleDateString()} -</p>
+                    <p className="text-xs">{new Date(b.endDate).toLocaleDateString()}</p>
+                  </td>
+                  <td className="p-8 text-right">
+                    <p className="text-xl font-black text-emerald-400">₹{b.price?.toLocaleString("en-IN")}</p>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+      </div>
+    </motion.div>
+  );
 }

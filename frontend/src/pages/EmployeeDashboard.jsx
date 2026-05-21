@@ -121,26 +121,26 @@ const EmployeeDashboard = () => {
                     className="bg-slate-900 rounded-[2rem] overflow-hidden border border-white/5 flex flex-col md:flex-row gap-6 p-4"
                   >
                     <div className="w-full md:w-64 h-48 rounded-2xl overflow-hidden shrink-0 shadow-2xl">
-                      <img src={booking.property?.images?.[0] || 'https://images.unsplash.com/photo-1512917774080-9991f1c4c750?w=800'} alt={booking.property?.title} className="w-full h-full object-cover" />
+                      <img src={booking.type === 'activity' ? 'https://images.pexels.com/photos/1032156/pexels-photo-1032156.jpeg?auto=compress&cs=tinysrgb&w=600' : (booking.property?.images?.[0] || 'https://images.pexels.com/photos/258154/pexels-photo-258154.jpeg?auto=compress&cs=tinysrgb&w=800')} alt={booking.property?.title} className="w-full h-full object-cover" />
                     </div>
                     <div className="flex-1 py-2 pr-4 flex flex-col justify-between">
                       <div>
                         <div className="flex justify-between items-start">
                           <span className="text-[10px] font-black uppercase tracking-wider text-indigo-400 px-3 py-1 bg-indigo-500/10 rounded-full">
-                            {booking.property?.type || 'Corporate Stay'}
+                            {booking.type === 'activity' ? 'Activity' : (booking.property?.type || 'Corporate Stay')}
                           </span>
                           <div className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider ${
-                            booking.status === 'confirmed' ? 'bg-indigo-500 text-white shadow-lg shadow-indigo-500/30' : 
+                            booking.status === 'confirmed' || booking.paymentStatus === 'completed' ? 'bg-indigo-500 text-white shadow-lg shadow-indigo-500/30' : 
                             booking.status === 'change_requested' ? 'bg-amber-500 text-white shadow-lg shadow-amber-500/30' :
                             'bg-slate-800 text-slate-400'
                           }`}>
-                            {booking.status}
+                            {booking.paymentStatus === 'completed' && !booking.status ? 'Confirmed' : (booking.status || 'Confirmed')}
                           </div>
                         </div>
-                        <h3 className="text-xl font-bold mt-4">{booking.property?.title || 'Unknown Stay'}</h3>
+                        <h3 className="text-xl font-bold mt-4">{booking.type === 'activity' ? booking.itemName : (booking.property?.title || 'Unknown Stay')}</h3>
                         <div className="flex flex-wrap gap-4 mt-3">
-                          <div className="flex items-center gap-2 text-slate-400 text-xs font-medium">
-                            <MapPin size={14} className="text-indigo-400" /> {booking.locationName}
+                          <div className="flex items-center gap-2 text-slate-400 text-xs font-medium capitalize">
+                            <MapPin size={14} className="text-indigo-400" /> {booking.type === 'activity' ? booking.destinationId : booking.locationName}
                           </div>
                           <div className="flex items-center gap-2 text-slate-400 text-xs font-medium">
                             <Calendar size={14} className="text-indigo-400" /> {new Date(booking.startDate).toLocaleDateString()}

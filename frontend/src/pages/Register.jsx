@@ -21,12 +21,22 @@ const Register = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
-    const result = await register(formData);
+    
+    // Map userType to role if not admin
+    const payload = {
+      ...formData,
+      role: formData.role === 'admin' ? 'admin' : formData.userType
+    };
+    
+    const result = await register(payload);
     setLoading(false);
 
     if (result.success) {
       toast.success('Account created successfully!');
-      navigate('/');
+      // Navigate to respective dashboard
+      if (payload.role === 'student') navigate('/student-dashboard');
+      else if (payload.role === 'employee') navigate('/employee-dashboard');
+      else navigate('/');
     } else {
       toast.error(result.message);
     }
