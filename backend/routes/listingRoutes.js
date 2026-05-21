@@ -63,9 +63,9 @@ router.post('/', (req, res) => {
         imageUrls = req.files.map(file => file.path || file.secure_url);
       } else if (req.files && req.files.length > 0) {
         const mockImages = [
-          "https://images.unsplash.com/photo-1512917774080-9991f1c4c750?w=1400",
-          "https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=1400",
-          "https://images.unsplash.com/photo-1600607687931-cebf5871c0eb?w=1400"
+          "https://images.pexels.com/photos/271624/pexels-photo-271624.jpeg?auto=compress&cs=tinysrgb&w=800",
+          "https://images.pexels.com/photos/164595/pexels-photo-164595.jpeg?auto=compress&cs=tinysrgb&w=800",
+          "https://images.pexels.com/photos/276724/pexels-photo-276724.jpeg?auto=compress&cs=tinysrgb&w=800"
         ];
         imageUrls = req.files.map((_, i) => mockImages[i % mockImages.length]);
       }

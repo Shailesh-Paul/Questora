@@ -10,7 +10,13 @@ const useTripStore = create(
       // Destination
       destination: null,
       setDestination: (dest) => {
-        set({ destination: dest });
+        // Clear old destination state to prevent data mixing
+        set({ 
+          destination: dest,
+          cart: [],
+          selectedActivities: [],
+          selectedHotel: null 
+        });
         get().autoSaveTrip();
       },
 
@@ -134,7 +140,8 @@ const useTripStore = create(
         const grandTotal = activitiesCost + hotelCost;
 
         try {
-          await fetch(`${process.env.REACT_APP_BACKEND_URL || 'http://localhost:5000'}/api/tripplans/autosave`, {
+          const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+          await fetch(`${baseUrl}/tripplans/autosave`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({

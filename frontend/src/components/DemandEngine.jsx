@@ -1,6 +1,7 @@
 import React, { useMemo, useState, useEffect } from 'react';
 import { Activity, Zap, TrendingUp, AlertTriangle, Clock, ShieldAlert, BadgePercent, ChevronRight } from 'lucide-react';
 import useTripStore from '../store/tripStore';
+import { API_BASE_URL } from '../config';
 
 export default function DemandEngine({ destination, budget }) {
   const { dateRange } = useTripStore();
@@ -10,9 +11,9 @@ export default function DemandEngine({ destination, budget }) {
     if (!destination?.id || !dateRange.start || !dateRange.end) return;
     const fetchAvailability = async () => {
       try {
-        const startStr = dateRange.start.toISOString();
-        const endStr = dateRange.end.toISOString();
-        const res = await fetch(`http://localhost:5000/api/availability?destinationId=${destination.id}&start=${startStr}&end=${endStr}`);
+        const startStr = new Date(dateRange.start).toISOString();
+        const endStr = new Date(dateRange.end).toISOString();
+        const res = await fetch(`${API_BASE_URL}/bookings/availability?destinationId=${destination.id}&start=${startStr}&end=${endStr}`);
         const data = await res.json();
         if (data.dailyTotals) {
           setAvailabilityData(data.dailyTotals);

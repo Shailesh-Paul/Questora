@@ -138,7 +138,7 @@ export default function ListingModal({ isOpen, onClose }) {
     images.forEach((image) => data.append("images", image));
 
     try {
-      const apiUrl = process.env.REACT_APP_API_URL || "http://localhost:5000/api";
+      const apiUrl = import.meta.env.VITE_API_URL ? `${import.meta.env.VITE_API_URL}/api` : "http://localhost:5000/api";
       // Note: Do not set Content-Type header manually when sending FormData. 
       // Axios/Browser will set it automatically with the correct boundary.
       await axios.post(`${apiUrl}/listings`, data);

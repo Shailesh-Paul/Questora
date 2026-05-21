@@ -11,32 +11,33 @@ import RentalRegistrationModal from "../components/RentalRegistrationModal";
 import axios from "axios";
 import toast from "react-hot-toast";
 
-const API_URL = process.env.REACT_APP_API_URL || "http://localhost:5000";
+const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
 
 const MOCK_RENTALS = [
   // GOA
-  { id: "r1", title: "Royal Enfield Classic 350", category: "Bikes", location: "Goa", hourlyPrice: 100, dailyPrice: 800, pricingType: "both", rating: 4.8, images: ["https://images.unsplash.com/photo-1558981403-c5f91cbba527?w=400"], ownerName: "Rajesh", contact: "9876543210" },
-  { id: "r2", title: "Thar 4x4 Convertible", category: "Cars", location: "Goa", hourlyPrice: 400, dailyPrice: 3500, pricingType: "both", rating: 4.9, images: ["https://images.unsplash.com/photo-1533473359331-0135ef1b58bf?w=400"], ownerName: "Goa Drive", contact: "9876543211" },
-  { id: "r3", title: "Activa 6G Scooter", category: "Scooters", location: "Goa", hourlyPrice: 50, dailyPrice: 400, pricingType: "both", rating: 4.7, images: ["https://images.unsplash.com/photo-1519750292352-c9fc17322ed7?w=400"], ownerName: "Local Rentals", contact: "9876543212" },
-  { id: "r5", title: "BMW G310 GS", category: "Bikes", location: "Goa", hourlyPrice: 250, dailyPrice: 1800, pricingType: "both", rating: 4.9, images: ["https://images.unsplash.com/photo-1599819811279-d5ad9cccf838?w=400"], ownerName: "Elite Bikes", contact: "9876543214" },
-  { id: "r6", title: "Suzuki Access 125", category: "Scooters", location: "Goa", hourlyPrice: 60, dailyPrice: 450, pricingType: "both", rating: 4.6, images: ["https://images.unsplash.com/photo-1591637333184-19aa84b3e01f?w=400"], ownerName: "Quick Rent", contact: "9876543215" },
-  { id: "r7", title: "Fortuner Legender", category: "Cars", location: "Goa", hourlyPrice: 800, dailyPrice: 6500, pricingType: "both", rating: 4.9, images: ["https://images.unsplash.com/photo-1583121274602-3e2820c69888?w=400"], ownerName: "VIP Goa", contact: "9876543216" },
-  { id: "r8", title: "Vespa VXL 150", category: "Scooters", location: "Goa", hourlyPrice: 80, dailyPrice: 600, pricingType: "both", rating: 4.8, images: ["https://images.unsplash.com/photo-1560243563-062bff001d68?w=400"], ownerName: "Style Ride", contact: "9876543217" },
+  { id: "r1", title: "Royal Enfield Classic 350", category: "Bikes", location: "Goa", hourlyPrice: 100, dailyPrice: 800, pricingType: "both", rating: 4.8, images: ["https://images.pexels.com/photos/2626661/pexels-photo-2626661.jpeg?auto=compress&cs=tinysrgb&w=400"], ownerName: "Rajesh", contact: "9876543210" },
+  { id: "r2", title: "Thar 4x4 Convertible", category: "Cars", location: "Goa", hourlyPrice: 400, dailyPrice: 3500, pricingType: "both", rating: 4.9, images: ["https://images.pexels.com/photos/3311574/pexels-photo-3311574.jpeg?auto=compress&cs=tinysrgb&w=400"], ownerName: "Goa Drive", contact: "9876543211" },
+  { id: "r3", title: "Activa 6G Scooter", category: "Scooters", location: "Goa", hourlyPrice: 50, dailyPrice: 400, pricingType: "both", rating: 4.7, images: ["https://images.pexels.com/photos/381228/pexels-photo-381228.jpeg?auto=compress&cs=tinysrgb&w=400"], ownerName: "Local Rentals", contact: "9876543212" },
+  { id: "r5", title: "BMW G310 GS", category: "Bikes", location: "Goa", hourlyPrice: 250, dailyPrice: 1800, pricingType: "both", rating: 4.9, images: ["https://images.pexels.com/photos/2626661/pexels-photo-2626661.jpeg?auto=compress&cs=tinysrgb&w=400"], ownerName: "Elite Bikes", contact: "9876543214" },
+  { id: "r6", title: "Suzuki Access 125", category: "Scooters", location: "Goa", hourlyPrice: 60, dailyPrice: 450, pricingType: "both", rating: 4.6, images: ["https://images.pexels.com/photos/381228/pexels-photo-381228.jpeg?auto=compress&cs=tinysrgb&w=400"], ownerName: "Quick Rent", contact: "9876543215" },
+  { id: "r7", title: "Fortuner Legender", category: "Cars", location: "Goa", hourlyPrice: 800, dailyPrice: 6500, pricingType: "both", rating: 4.9, images: ["https://images.pexels.com/photos/3311574/pexels-photo-3311574.jpeg?auto=compress&cs=tinysrgb&w=400"], ownerName: "VIP Goa", contact: "9876543216" },
+  { id: "r8", title: "Vespa VXL 150", category: "Scooters", location: "Goa", hourlyPrice: 80, dailyPrice: 600, pricingType: "both", rating: 4.8, images: ["https://images.pexels.com/photos/381228/pexels-photo-381228.jpeg?auto=compress&cs=tinysrgb&w=400"], ownerName: "Style Ride", contact: "9876543217" },
 
   // MANALI
-  { id: "r4", title: "Mountain Bike (MTB)", category: "Bikes", location: "Manali", hourlyPrice: 80, dailyPrice: 600, pricingType: "both", rating: 4.6, images: ["https://images.unsplash.com/photo-1485965120184-e220f721d03e?w=400"], ownerName: "Himalayan Gear", contact: "9876543213" },
-  { id: "r9", title: "Royal Enfield Himalayan", category: "Bikes", location: "Manali", hourlyPrice: 150, dailyPrice: 1200, pricingType: "both", rating: 4.9, images: ["https://images.unsplash.com/photo-1525160354320-d8e92641c563?w=400"], ownerName: "Snow Rides", contact: "9876543218" },
-  { id: "r10", title: "Mahindra Scorpio-N", category: "Cars", location: "Manali", hourlyPrice: 500, dailyPrice: 4000, pricingType: "both", rating: 4.8, images: ["https://images.unsplash.com/photo-1582141517551-87265a711200?w=400"], ownerName: "Mountain Kings", contact: "9876543219" },
-  { id: "r11", title: "KTM Duke 390", category: "Bikes", location: "Manali", hourlyPrice: 200, dailyPrice: 1500, pricingType: "both", rating: 4.7, images: ["https://images.unsplash.com/photo-1568772585407-9361f9bf3a87?w=400"], ownerName: "Swift Rent", contact: "9876543220" },
-  { id: "r12", title: "Fat Bike (Snow Edition)", category: "Bikes", location: "Manali", hourlyPrice: 100, dailyPrice: 700, pricingType: "both", rating: 4.5, images: ["https://images.unsplash.com/photo-1553105659-d918b25db74b?w=400"], ownerName: "Snow Gear", contact: "9876543221" },
+  { id: "r4", title: "Mountain Bike (MTB)", category: "Bikes", location: "Manali", hourlyPrice: 80, dailyPrice: 600, pricingType: "both", rating: 4.6, images: ["https://images.pexels.com/photos/100582/pexels-photo-100582.jpeg?auto=compress&cs=tinysrgb&w=400"], ownerName: "Himalayan Gear", contact: "9876543213" },
+  { id: "r9", title: "Royal Enfield Himalayan", category: "Bikes", location: "Manali", hourlyPrice: 150, dailyPrice: 1200, pricingType: "both", rating: 4.9, images: ["https://images.pexels.com/photos/2626661/pexels-photo-2626661.jpeg?auto=compress&cs=tinysrgb&w=400"], ownerName: "Snow Rides", contact: "9876543218" },
+  { id: "r10", title: "Mahindra Scorpio-N", category: "Cars", location: "Manali", hourlyPrice: 500, dailyPrice: 4000, pricingType: "both", rating: 4.8, images: ["https://images.pexels.com/photos/3311574/pexels-photo-3311574.jpeg?auto=compress&cs=tinysrgb&w=400"], ownerName: "Mountain Kings", contact: "9876543219" },
+  { id: "r11", title: "KTM Duke 390", category: "Bikes", location: "Manali", hourlyPrice: 200, dailyPrice: 1500, pricingType: "both", rating: 4.7, images: ["https://images.pexels.com/photos/2626661/pexels-photo-2626661.jpeg?auto=compress&cs=tinysrgb&w=400"], ownerName: "Swift Rent", contact: "9876543220" },
+  { id: "r12", title: "Fat Bike (Snow Edition)", category: "Bikes", location: "Manali", hourlyPrice: 100, dailyPrice: 700, pricingType: "both", rating: 4.5, images: ["https://images.pexels.com/photos/100582/pexels-photo-100582.jpeg?auto=compress&cs=tinysrgb&w=400"], ownerName: "Snow Gear", contact: "9876543221" },
 
   // RISHIKESH
-  { id: "r13", title: "Honda CB350 RS", category: "Bikes", location: "Rishikesh", hourlyPrice: 120, dailyPrice: 900, pricingType: "both", rating: 4.8, images: ["https://images.unsplash.com/photo-1558981806-ec527fa84c39?w=400"], ownerName: "Ganga Rides", contact: "9876543222" },
-  { id: "r14", title: "Hyundai Creta", category: "Cars", location: "Rishikesh", hourlyPrice: 350, dailyPrice: 3000, pricingType: "both", rating: 4.7, images: ["https://images.unsplash.com/photo-1533473359331-0135ef1b58bf?w=400"], ownerName: "Divine Wheels", contact: "9876543223" },
-  { id: "r15", title: "Bajaj Avenger 220", category: "Bikes", location: "Rishikesh", hourlyPrice: 90, dailyPrice: 700, pricingType: "both", rating: 4.6, images: ["https://images.unsplash.com/photo-1558981285-6f0c94958bb6?w=400"], ownerName: "Cruise Rent", contact: "9876543224" },
-  { id: "r16", title: "Electric Scooter", category: "Scooters", location: "Rishikesh", hourlyPrice: 40, dailyPrice: 300, pricingType: "both", rating: 4.4, images: ["https://images.unsplash.com/photo-1558981403-c5f91cbba527?w=400"], ownerName: "Eco Wheels", contact: "9876543225" },
-  { id: "r17", title: "Innova Crysta", category: "Cars", location: "Rishikesh", hourlyPrice: 600, dailyPrice: 5000, pricingType: "both", rating: 4.9, images: ["https://images.unsplash.com/photo-1583121274602-3e2820c69888?w=400"], ownerName: "Ganga Travel", contact: "9876543226" },
+  { id: "r13", title: "Honda CB350 RS", category: "Bikes", location: "Rishikesh", hourlyPrice: 120, dailyPrice: 900, pricingType: "both", rating: 4.8, images: ["https://images.pexels.com/photos/2626661/pexels-photo-2626661.jpeg?auto=compress&cs=tinysrgb&w=400"], ownerName: "Ganga Rides", contact: "9876543222" },
+  { id: "r14", title: "Hyundai Creta", category: "Cars", location: "Rishikesh", hourlyPrice: 350, dailyPrice: 3000, pricingType: "both", rating: 4.7, images: ["https://images.pexels.com/photos/3311574/pexels-photo-3311574.jpeg?auto=compress&cs=tinysrgb&w=400"], ownerName: "Divine Wheels", contact: "9876543223" },
+  { id: "r15", title: "Bajaj Avenger 220", category: "Bikes", location: "Rishikesh", hourlyPrice: 90, dailyPrice: 700, pricingType: "both", rating: 4.6, images: ["https://images.pexels.com/photos/2626661/pexels-photo-2626661.jpeg?auto=compress&cs=tinysrgb&w=400"], ownerName: "Cruise Rent", contact: "9876543224" },
+  { id: "r16", title: "Electric Scooter", category: "Scooters", location: "Rishikesh", hourlyPrice: 40, dailyPrice: 300, pricingType: "both", rating: 4.4, images: ["https://images.pexels.com/photos/381228/pexels-photo-381228.jpeg?auto=compress&cs=tinysrgb&w=400"], ownerName: "Eco Wheels", contact: "9876543225" },
+  { id: "r17", title: "Innova Crysta", category: "Cars", location: "Rishikesh", hourlyPrice: 600, dailyPrice: 5000, pricingType: "both", rating: 4.9, images: ["https://images.pexels.com/photos/3311574/pexels-photo-3311574.jpeg?auto=compress&cs=tinysrgb&w=400"], ownerName: "Ganga Travel", contact: "9876543226" },
 ];
+
 
 const loadRazorpayScript = () => {
   return new Promise((resolve) => {
@@ -67,7 +68,7 @@ export default function RentalsPage() {
 
   const fetchRentals = async () => {
     try {
-      const res = await axios.get(`${API_URL}/api/listings?location=${selectedLocation}`);
+      const res = await axios.get(`${API_URL}/listings?location=${selectedLocation}`);
       const dbRentals = res.data.filter(l => ['Bikes', 'Cars', 'Scooters'].includes(l.category));
       setRentals(dbRentals.length > 0 ? dbRentals : MOCK_RENTALS.filter(r => r.location.toLowerCase() === selectedLocation.toLowerCase()));
     } catch (err) {
@@ -104,7 +105,7 @@ export default function RentalsPage() {
     }
 
     try {
-      const orderRes = await axios.post(`${API_URL}/api/bookings/create-order`, {
+      const orderRes = await axios.post(`${API_URL}/bookings/create-order`, {
         amount,
         listingId: rental._id || rental.id,
         ownerName: rental.ownerName,
@@ -126,7 +127,7 @@ export default function RentalsPage() {
         image: rental.images[0],
         order_id: orderId,
         handler: async function (response) {
-          await axios.post(`${API_URL}/api/bookings/verify`, {
+          await axios.post(`${API_URL}/bookings/verify`, {
             ...response,
             bookingId
           });

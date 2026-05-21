@@ -30,8 +30,70 @@ class WebhookController {
   }
 
   async processMessage(from, body, messageSid, profileName) {
-    // Find user by phone
+    const isJoinSandbox = body.trim().toLowerCase() === "join ill-stretch";
     const phone = from.replace('whatsapp:', '');
+
+    if (isJoinSandbox) {
+      const User = require('../models/User');
+      const Trip = require('../models/Trip');
+      const user = await User.findOne({ phone_number: phone });
+      
+      if (!user) {
+        await twilioService.sendWhatsAppMessage(
+          from,
+          "👋 Welcome! We couldn't find an active booking under your number. Please complete your trip booking on our website first!"
+        );
+        return;
+      }
+
+      const trip = await Trip.findOne({
+        user_id: user._id,
+        status: { $in: ['UPCOMING', 'ACTIVE'] }
+      }).sort({ created_at: -1 });
+
+      if (!trip) {
+        await twilioService.sendWhatsAppMessage(
+          from,
+          `👋 Welcome, ${user.name}! You are now connected, but we couldn't find an active or upcoming trip itinerary. Please plan and book a trip on our website!`
+        );
+        return;
+      }
+
+      const activities = trip.trip_data?.activities || [];
+      const activitiesList = activities.length > 0
+        ? activities.map((a, idx) => `🔹 *${idx + 1}. ${a.name}*\n   💰 Price: ₹${a.price.toLocaleString('en-IN')}`).join('\n\n')
+        : 'No activities selected yet.';
+
+      const hotelName = trip.hotel?.name && trip.hotel.name !== 'Hotel' ? trip.hotel.name : 'Not Booked';
+      const advancePaid = Math.round((trip.trip_data?.total_activities_cost || 0) * 0.2);
+      const remainingToPay = (trip.trip_data?.total_activities_cost || 0) - advancePaid;
+
+      const message = `🎉 *Welcome to Questora Sandbox Assistant!* 🚀
+
+Hello *${user.name}*, you have successfully connected your AI Travel Assistant! Here are the details of your booked trip and activities:
+
+📍 *Destination:* ${trip.destination}
+👥 *Travelers:* ${trip.trip_data?.members || 1}
+📅 *Dates:* ${new Date(trip.check_in_date).toLocaleDateString('en-IN')} to ${new Date(trip.check_out_date).toLocaleDateString('en-IN')}
+🏨 *Stay:* ${hotelName}
+
+🎟️ *Your Booked Activities:*
+${activitiesList}
+
+📊 *Payment Summary:*
+- Itinerary Value: ₹${(trip.trip_data?.total_activities_cost || 0).toLocaleString('en-IN')}
+- Advance Paid (20%): ₹${advancePaid.toLocaleString('en-IN')}
+- Remaining (Pay at destination): ₹${remainingToPay.toLocaleString('en-IN')}
+
+💡 *Ask me anything!*
+You can log expenses by typing "₹200 for lunch", check weather by asking "how is the weather today?", check schedule by typing "what is my schedule?", or just chat! 🌤️`;
+
+      await twilioService.sendWhatsAppMessage(from, message);
+      
+      await this.saveConversationMessage(user._id, trip._id, 'user', body);
+      await this.saveConversationMessage(user._id, trip._id, 'assistant', message);
+      return;
+    }
 
     // Validate subscription FIRST - before any other checks
     const validation = await subscriptionService.validateSubscription(phone);

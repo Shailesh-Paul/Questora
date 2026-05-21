@@ -97,7 +97,7 @@ export default function CarouselHero({ onExplore }) {
     <section
       onMouseMove={handleMouseMove}
       onMouseLeave={handleMouseLeave}
-      style={{ position:"relative", height:"100vh", overflow:"hidden", background:"#000", fontFamily:"'DM Sans', sans-serif" }}
+      style={{ position:"relative", height:"100dvh", minHeight:"-webkit-fill-available", overflow:"hidden", background:"#000", fontFamily:"'DM Sans', sans-serif" }}
     >
       {/* ── FONTS + KEYFRAMES ── */}
       <style>{`
@@ -107,7 +107,7 @@ export default function CarouselHero({ onExplore }) {
         @keyframes slideInL  { from{transform:translateX(-5%) scale(1.02);opacity:0} to{transform:translateX(0) scale(1);opacity:1} }
         @keyframes slideOutL { from{transform:translateX(0);opacity:1} to{transform:translateX(-3%);opacity:0} }
         @keyframes slideOutR { from{transform:translateX(0);opacity:1} to{transform:translateX(3%);opacity:0} }
-        @keyframes kenBurns  { from{transform:scale(1.14)} to{transform:scale(1.04)} }
+        @keyframes kenBurns  { 0%{transform:scale(1.08)} 100%{transform:scale(1.01)} }
         @keyframes riseUp    { from{opacity:0;transform:translateY(38px)} to{opacity:1;transform:translateY(0)} }
         @keyframes riseUp2   { from{opacity:0;transform:translateY(22px)} to{opacity:1;transform:translateY(0)} }
         @keyframes fadeUp    { from{opacity:0;transform:translateY(14px)} to{opacity:1;transform:translateY(0)} }
@@ -155,33 +155,31 @@ export default function CarouselHero({ onExplore }) {
         )}
       </div>
 
-      {/* ── SLIDES ── */}
-      {HERO_SLIDES.map((s, i) => {
-        const isActive = currentSlide === i;
-        const isPrev   = prevSlide === i;
-        if (!isActive && !isPrev) return null;
-        return (
-          <div key={i} style={{ position:"absolute", inset:0, zIndex: isActive ? 10 : 9 }}>
-            <div style={{
-              position:"absolute", inset:0,
-              animation: isActive && !isPrev
-                ? `slideIn${direction === "right" ? "R" : "L"} 0.7s cubic-bezier(0.76,0,0.24,1) forwards`
-                : isPrev
-                  ? `slideOut${direction === "right" ? "L" : "R"} 0.7s cubic-bezier(0.76,0,0.24,1) forwards`
-                  : "none",
-            }}>
-              <img src={s.image} alt={s.location} style={{
-                width:"100%", height:"100%", objectFit:"cover",
-                transform:`scale(1.1) translate3d(${mousePos.x}px,${mousePos.y}px,0)`,
-                transition:"transform 0.6s ease-out",
-                animation: isActive ? "kenBurns 9s ease-out forwards" : "none",
-              }}/>
-              <div style={{ position:"absolute", inset:0, background:"linear-gradient(to bottom, rgba(0,0,0,0.52) 0%, rgba(0,0,0,0.08) 45%, rgba(0,0,0,0.8) 100%)" }}/>
-              <div style={{ position:"absolute", inset:0, background:"linear-gradient(108deg, rgba(0,0,0,0.68) 0%, rgba(0,0,0,0.18) 52%, transparent 100%)" }}/>
-            </div>
-          </div>
-        );
-      })}
+      {/* ── STUNNING DYNAMIC TOURIST BACKGROUNDS ── */}
+      <div style={{ position:"absolute", inset:0, zIndex: 1 }}>
+        {HERO_SLIDES.map((s, idx) => (
+          <img 
+            key={idx}
+            src={s.image} 
+            alt={s.location} 
+            referrerPolicy="no-referrer" 
+            style={{
+              position: "absolute",
+              inset: 0,
+              width: "100%",
+              height: "100%",
+              objectFit: "cover",
+              opacity: currentSlide === idx ? 1 : 0,
+              transition: "opacity 1.0s cubic-bezier(0.4, 0, 0.2, 1)",
+              transform: `scale(1.06) translate3d(${mousePos.x}px,${mousePos.y}px,0)`,
+              animation: currentSlide === idx ? "kenBurns 24s ease-in-out infinite alternate" : "none",
+              zIndex: currentSlide === idx ? 2 : 1,
+            }}
+          />
+        ))}
+        <div style={{ position:"absolute", inset:0, background:"linear-gradient(to bottom, rgba(0,0,0,0.55) 0%, rgba(0,0,0,0.1) 45%, rgba(0,0,0,0.8) 100%)", zIndex:3 }}/>
+        <div style={{ position:"absolute", inset:0, background:"linear-gradient(108deg, rgba(0,0,0,0.7) 0%, rgba(0,0,0,0.2) 52%, transparent 100%)", zIndex:3 }}/>
+      </div>
 
       {/* ── AMBIENT GLOWS ── */}
       <div style={{ position:"absolute", top:"-8%", left:"-4%", width:"42rem", height:"42rem", background:"radial-gradient(circle, rgba(251,146,60,0.07) 0%, transparent 70%)", pointerEvents:"none", zIndex:20 }}/>
@@ -259,8 +257,8 @@ export default function CarouselHero({ onExplore }) {
 
       {/* ── MAIN CONTENT ── */}
       <div style={{ position:"absolute", inset:0, zIndex:30, display:"flex", alignItems:"center" }}>
-        <div style={{ maxWidth:1280, margin:"0 auto", padding:"0 52px", width:"100%" }}>
-          <div style={{ maxWidth:660 }}>
+        <div style={{ maxWidth:1280, margin:"0 auto", padding:"0 24px", width:"100%", boxSizing: "border-box" }}>
+          <div style={{ maxWidth:660, margin: window.innerWidth < 768 ? "0 auto" : "0", textAlign: window.innerWidth < 768 ? "center" : "left" }}>
 
             {/* DESTINATION PILL */}
             <div key={`tag-${currentSlide}`} className="ch-rise1" style={{
@@ -372,7 +370,7 @@ export default function CarouselHero({ onExplore }) {
       {/* ── BOTTOM BAR ── */}
       <div style={{
         position:"absolute", bottom:0, left:0, right:0, zIndex:40,
-        padding:"0 52px 28px",
+        padding: window.innerWidth < 768 ? "0 24px 20px" : "0 52px 28px",
         display:"flex", alignItems:"flex-end", justifyContent:"space-between",
         background:"linear-gradient(to top, rgba(0,0,0,0.48) 0%, transparent 100%)",
       }}>
