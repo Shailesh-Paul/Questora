@@ -1,4 +1,4 @@
-# WeekendWander — The Weekend-First Travel Marketplace
+# Questora — The Weekend-First Travel Marketplace
 
 Welcome to the **WeekendWander** repository! This project transforms the traditional hotel booking experience into a seamless, no-login marketplace dedicated to weekend getaways. It connects travelers directly with local hosts, vehicle rentals, and adventure guides without intermediate commissions.
 
